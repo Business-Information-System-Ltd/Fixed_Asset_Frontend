@@ -1,42 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class WipForm extends StatefulWidget {
-  const WipForm({super.key});
+class GeneralLedger extends StatefulWidget {
+  const GeneralLedger({super.key});
 
   @override
-  State<WipForm> createState() => _WipFormState();
+  State<GeneralLedger> createState() => _GeneralLedgerState();
 }
 
-class _WipFormState extends State<WipForm> {
+class _GeneralLedgerState extends State<GeneralLedger> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
-  final TextEditingController _wipCodeController = TextEditingController();
-  final TextEditingController _projectNameController = TextEditingController();
+  //controllers
+  final TextEditingController _GLCodeController = TextEditingController();
+  final TextEditingController _GLDateController = TextEditingController();
+  final TextEditingController _SourceCodeController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _startDateController = TextEditingController();
-  final TextEditingController _endDateController = TextEditingController();
-  final TextEditingController _totalAmountController = TextEditingController();
+  final TextEditingController _debitAmountController = TextEditingController();
+  final TextEditingController _creditAmountController = TextEditingController();
+  final TextEditingController _AccountNameController = TextEditingController();
 
-  // DropDown
+  //DropDown
   String? _selectedCurrency;
-  String? _selectedGLCode;
+  String? _selectedSourceType;
+  String? _selectedRefType;
+  String? _selectedAccountCode;
 
-  // Checkbox state
-  bool _isFromGL = false;
-
-  final List<String> _currencyOptions = ['MMK', 'USD'];
-  final List<String> _GLCodeOptions = ['1001', '1002', '1003', '1004'];
+  final List<String> _currencyOption = ['MMK', 'USD'];
+  final List<String> _sourceTypeOption = ['WIP', 'Fixed Asset Register'];
+  final List<String> _refTypeOption = ['Expense', 'Depreciation'];
+  final List<String> _accountCodeOption = ['A_001', 'A_002', 'A_003'];
 
   @override
   void initState() {
     super.initState();
-    _selectedCurrency = _currencyOptions.first;
-    _selectedGLCode = _GLCodeOptions.first;
+    _selectedCurrency = _currencyOption.first;
+    _selectedRefType = _refTypeOption.first;
+    _selectedSourceType = _sourceTypeOption.first;
+    _selectedAccountCode = _accountCodeOption.first;
+    _GLDateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
   }
 
-  Future<void> _selectStartDate() async {
+  Future<void> _selectedDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -45,53 +50,42 @@ class _WipFormState extends State<WipForm> {
     );
     if (picked != null) {
       setState(() {
-        _startDateController.text = DateFormat('yyyy-MM-dd').format(picked);
-      });
-    }
-  }
-
-  Future<void> _selectEndDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        _endDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _GLDateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
 
   void _clearForm() {
     _formKey.currentState?.reset();
-    _wipCodeController.clear();
-    _projectNameController.clear();
+    _GLCodeController.clear();
+    _GLDateController.clear();
+    _SourceCodeController.clear();
     _descriptionController.clear();
-    _startDateController.clear();
-    _endDateController.clear();
-    _totalAmountController.clear();
+    _AccountNameController.clear();
+    _debitAmountController.clear();
+    _creditAmountController.clear();
     setState(() {
-      _selectedCurrency = _currencyOptions.first;
-      _selectedGLCode = _GLCodeOptions.first;
-      _isFromGL = false;
+      _selectedCurrency = _currencyOption.first;
+      _selectedRefType = _refTypeOption.first;
+      _selectedSourceType = _sourceTypeOption.first;
+      _selectedAccountCode = _accountCodeOption.first;
+      _GLDateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
     });
   }
 
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
-      print('WIP Code: ${_wipCodeController.text}');
-      print('Project Name: ${_projectNameController.text}');
+      print('GL Code: ${_GLCodeController.text}');
+      print('GL Date: ${_GLDateController.text}');
+      print('Source Code: ${_SourceCodeController.text}');
       print('Description: ${_descriptionController.text}');
-      print('Start Date: ${_startDateController.text}');
-      print('End Date: ${_endDateController.text}');
-      print('Total Amount: ${_totalAmountController.text}');
+      print('Debit Amount: ${_debitAmountController.text}');
+      print('Credit Amount: ${_creditAmountController.text}');
+      print('Account Name: ${_AccountNameController.text}');
       print('Currency: $_selectedCurrency');
-      print('From GL: $_isFromGL');
-      if (_isFromGL) {
-        print('GL Code: $_selectedGLCode');
-      }
+      print('Ref Type: $_selectedRefType');
+      print('Source Type: $_selectedSourceType');
+      print('Account Code: $_selectedAccountCode');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -104,12 +98,13 @@ class _WipFormState extends State<WipForm> {
 
   @override
   void dispose() {
-    _wipCodeController.dispose();
-    _projectNameController.dispose();
+    _GLCodeController.dispose();
+    _GLDateController.dispose();
+    _SourceCodeController.dispose();
     _descriptionController.dispose();
-    _startDateController.dispose();
-    _endDateController.dispose();
-    _totalAmountController.dispose();
+    _debitAmountController.dispose();
+    _creditAmountController.dispose();
+    _AccountNameController.dispose();
     super.dispose();
   }
 
@@ -117,7 +112,7 @@ class _WipFormState extends State<WipForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("WIP Form"),
+        title: const Text("General Ledger Form"),
         centerTitle: true,
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
@@ -126,7 +121,7 @@ class _WipFormState extends State<WipForm> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: Container(
-            constraints: BoxConstraints(maxWidth: 700, minWidth: 600),
+            constraints: BoxConstraints(maxWidth: 700, minWidth: 500),
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -147,7 +142,7 @@ class _WipFormState extends State<WipForm> {
                 children: [
                   const Center(
                     child: Text(
-                      "WIP Form",
+                      'General Ledger Form',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -157,7 +152,7 @@ class _WipFormState extends State<WipForm> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Row 1: WIP Code and Project Name
+                  // Row 1: GL Code and GL Date
                   Row(
                     children: [
                       Expanded(
@@ -165,7 +160,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'WIP Code',
+                              'GL Code:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -173,9 +168,9 @@ class _WipFormState extends State<WipForm> {
                             ),
                             const SizedBox(height: 4),
                             TextFormField(
-                              controller: _wipCodeController,
+                              controller: _GLCodeController,
                               decoration: InputDecoration(
-                                hintText: 'Enter WIP Code',
+                                hintText: 'Enter GL Code',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
@@ -186,7 +181,7 @@ class _WipFormState extends State<WipForm> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter WIP Code';
+                                  return 'Please Enter GL Code';
                                 }
                                 return null;
                               },
@@ -200,7 +195,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Project Name",
+                              'GL Date:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -208,9 +203,71 @@ class _WipFormState extends State<WipForm> {
                             ),
                             const SizedBox(height: 4),
                             TextFormField(
-                              controller: _projectNameController,
+                              controller: _GLDateController,
+                              readOnly: true,
                               decoration: InputDecoration(
-                                hintText: 'Enter Project Name',
+                                hintText: 'Select GL date',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(
+                                    Icons.calendar_today,
+                                    size: 18,
+                                  ),
+                                  onPressed: _selectedDate,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'GL Date is required';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Row 2: Source Type, Source Code, and Ref Type
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 250,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Source Type:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            DropdownButtonFormField<String>(
+                              value: _selectedSourceType,
+                              items: _sourceTypeOption
+                                  .map(
+                                    (type) => DropdownMenuItem<String>(
+                                      value: type,
+                                      child: Text(type),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedSourceType = value;
+                                });
+                              },
+                              decoration: InputDecoration(
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
@@ -221,7 +278,89 @@ class _WipFormState extends State<WipForm> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter Project Name';
+                                  return 'Select Source Type';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Source Code:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              controller: _SourceCodeController,
+                              decoration: InputDecoration(
+                                hintText: 'Enter Source Code',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please Enter Source Code';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Ref Type:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            DropdownButtonFormField<String>(
+                              value: _selectedRefType,
+                              items: _refTypeOption
+                                  .map(
+                                    (type) => DropdownMenuItem<String>(
+                                      value: type,
+                                      child: Text(type),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedRefType = value;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Select Ref Type';
                                 }
                                 return null;
                               },
@@ -238,7 +377,7 @@ class _WipFormState extends State<WipForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Description',
+                        'Description:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -246,23 +385,29 @@ class _WipFormState extends State<WipForm> {
                       ),
                       const SizedBox(height: 4),
                       TextFormField(
-                        controller: _descriptionController,
+                        controller: _descriptionController, // Fixed controller
                         maxLines: 3,
                         decoration: InputDecoration(
-                          hintText: 'Enter description',
+                          hintText: 'Enter Description',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(4.0),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 12,
+                            vertical: 10,
                           ),
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please Enter Description';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),
 
-                  // Start Date and End Date
+                  // Debit Amount, Currency, Credit Amount
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -271,7 +416,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Start Date',
+                              'Debit Amount:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -279,101 +424,7 @@ class _WipFormState extends State<WipForm> {
                             ),
                             const SizedBox(height: 4),
                             TextFormField(
-                              controller: _startDateController,
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                hintText: 'Select Start Date',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                suffixIcon: IconButton(
-                                  onPressed: _selectStartDate,
-                                  icon: const Icon(
-                                    Icons.calendar_today,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Start date is required';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'End Date',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                              controller: _endDateController,
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                hintText: 'Select End Date',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                suffixIcon: IconButton(
-                                  onPressed: _selectEndDate,
-                                  icon: const Icon(
-                                    Icons.calendar_today,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'End date is required';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Single Row: Total Amount, Currency, From GL checkbox, and GL Code dropdown
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      // Total Amount
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Total Amount",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                              controller: _totalAmountController,
+                              controller: _debitAmountController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
                                 hintText: '0.00',
@@ -387,10 +438,10 @@ class _WipFormState extends State<WipForm> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter Total Amount';
+                                  return 'Please Enter Debit Amount';
                                 }
                                 if (double.tryParse(value) == null) {
-                                  return 'Please enter a valid number';
+                                  return 'Enter a valid amount';
                                 }
                                 return null;
                               },
@@ -399,15 +450,13 @@ class _WipFormState extends State<WipForm> {
                         ),
                       ),
                       const SizedBox(width: 10),
-
-                      // Currency
-                      Expanded(
-                        flex: 1,
+                      SizedBox(
+                        width: 100,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Currency',
+                              'Currency:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -425,7 +474,7 @@ class _WipFormState extends State<WipForm> {
                                   vertical: 4,
                                 ),
                               ),
-                              items: _currencyOptions.map((currency) {
+                              items: _currencyOption.map((currency) {
                                 return DropdownMenuItem(
                                   value: currency,
                                   child: Text(currency),
@@ -447,107 +496,134 @@ class _WipFormState extends State<WipForm> {
                         ),
                       ),
                       const SizedBox(width: 10),
-
-                      // From GL Checkbox
                       Expanded(
-                        flex: 1,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              ' ',
+                              'Credit Amount:',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Container(
-                              height: 50,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                children: [
-                                  Checkbox(
-                                    value: _isFromGL,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _isFromGL = value!;
-                                        // Reset GL Code when checkbox is unchecked
-                                        if (!_isFromGL) {
-                                          _selectedGLCode =
-                                              _GLCodeOptions.first;
-                                        }
-                                      });
-                                    },
-                                  ),
-                                  const Text(
-                                    'From GL',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
+                            TextFormField(
+                              controller: _creditAmountController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                hintText: '0.00',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                               ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please Enter Credit Amount';
+                                }
+                                if (double.tryParse(value) == null) {
+                                  return 'Enter a valid amount';
+                                }
+                                return null;
+                              },
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
-
-                      // GL Code Dropdown (Conditional)
-                      if (_isFromGL)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'GL Code',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedGLCode,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                ),
-                                items: _GLCodeOptions.map((code) {
-                                  return DropdownMenuItem(
-                                    value: code,
-                                    child: Text(code),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedGLCode = value;
-                                  });
-                                },
-                                validator: _isFromGL
-                                    ? (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Select GL Code';
-                                        }
-                                        return null;
-                                      }
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
 
-                  // Buttons
+                  // Account Code and Account Name
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Account Code:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            DropdownButtonFormField<String>(
+                              value: _selectedAccountCode,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                              items: _accountCodeOption.map((type) {
+                                return DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedAccountCode = value;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Select Account Code';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Account Name:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              controller: _AccountNameController,
+                              decoration: InputDecoration(
+                                hintText: 'Enter Account Name',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please Enter Account Name';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Save and Clear buttons
                   const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

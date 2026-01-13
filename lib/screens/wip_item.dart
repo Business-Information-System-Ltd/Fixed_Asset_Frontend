@@ -190,7 +190,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Item code:',
+                              'Item code',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -225,7 +225,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Date:',
+                              'Date',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -266,7 +266,7 @@ class _WipItemFormState extends State<WipItemForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Item Name:',
+                        'Item Name',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -305,7 +305,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Unit Cost:',
+                              'Unit Cost',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -346,7 +346,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Currency:',
+                              'Currency',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -392,7 +392,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Quantity:',
+                              'Quantity',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -435,7 +435,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Total Cost:',
+                              'Total Cost',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -474,7 +474,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Cost Type:',
+                              'Cost Type',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -519,7 +519,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Transaction Date:',
+                              'Transaction Date',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -562,7 +562,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'WIP Project:',
+                              'WIP Project',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,

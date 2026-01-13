@@ -1,3 +1,4 @@
+import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,13 @@ class _MyAppState extends State<MyApp> {
                   context,
                 ).push(MaterialPageRoute(builder: (context) => WipForm())),
                 child: Text('Open WIP From'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => GeneralLedger()),
+                ),
+                child: Text('Open General Ledger Form'),
               ),
             ],
           ),
