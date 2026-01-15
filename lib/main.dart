@@ -1,6 +1,8 @@
+import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
+import 'package:fixed_asset_frontend/screens/wip_list.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -24,6 +26,13 @@ class _MyAppState extends State<MyApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => WIPListScreen()),
+                ),
+                child: Text('Open Wip List'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
                 onPressed: () => Navigator.of(
                   context,
                 ).push(MaterialPageRoute(builder: (context) => WipItemForm())),
@@ -42,6 +51,13 @@ class _MyAppState extends State<MyApp> {
                   MaterialPageRoute(builder: (context) => GeneralLedger()),
                 ),
                 child: Text('Open General Ledger Form'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (context) => FixAssetForm())),
+                child: Text('Open Fixed Asset Form'),
               ),
             ],
           ),
