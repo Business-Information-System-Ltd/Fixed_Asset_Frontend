@@ -1,4 +1,5 @@
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
+import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
@@ -58,6 +59,15 @@ class _MyAppState extends State<MyApp> {
                   context,
                 ).push(MaterialPageRoute(builder: (context) => FixAssetForm())),
                 child: Text('Open Fixed Asset Form'),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => FixedAssetListScreen(),
+                  ),
+                ),
+                child: Text('Open Fixed Asset List'),
               ),
             ],
           ),

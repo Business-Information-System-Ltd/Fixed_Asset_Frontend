@@ -250,7 +250,11 @@ class _WIPListScreenState extends State<WIPListScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Work In Progress (WIP) Projects')),
+      appBar: AppBar(
+        title: const Text('Work In Progress (WIP) Projects'),
+        backgroundColor: Colors.blue[800],
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
           Container(

@@ -34,7 +34,7 @@ class _FixAssetFormState extends State<FixAssetForm> {
   );
   final TextEditingController _exchangeRateController = TextEditingController();
   final TextEditingController _totalAmountController = TextEditingController();
-  final TextEditingController _GLCodeController = TextEditingController();
+  // final TextEditingController _GLCodeController = TextEditingController();
   final TextEditingController _capitalizationDateController =
       TextEditingController();
   final TextEditingController _usefullifeController = TextEditingController();
