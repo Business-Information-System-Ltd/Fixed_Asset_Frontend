@@ -1,3 +1,4 @@
+import 'package:fixed_asset_frontend/screens/dashboard.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
@@ -7,7 +8,7 @@ import 'package:fixed_asset_frontend/screens/wip_list.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: MyApp()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: MainScreen()));
 }
 
 class MyApp extends StatefulWidget {

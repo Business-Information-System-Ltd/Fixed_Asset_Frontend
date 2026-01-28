@@ -1,3 +1,5 @@
+import 'package:fixed_asset_frontend/api/api_service.dart';
+import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -29,11 +31,25 @@ class _WipFormState extends State<WipForm> {
   final List<String> _currencyOptions = ['MMK', 'USD'];
   final List<String> _GLCodeOptions = ['1001', '1002', '1003', '1004'];
 
+  List<Wip> wip_data = [];
+
   @override
   void initState() {
     super.initState();
     _selectedCurrency = _currencyOptions.first;
     _selectedGLCode = _GLCodeOptions.first;
+    _fetchData();
+  }
+
+  void _fetchData() async {
+    try {
+      List<Wip> wipDetails = await ApiService().fetchWipData();
+      setState(() {
+        wip_data = wipDetails;
+      });
+    } catch (e) {
+      print('Fail to load wip data : $e');
+    }
   }
 
   Future<void> _selectStartDate() async {
@@ -79,26 +95,145 @@ class _WipFormState extends State<WipForm> {
     });
   }
 
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      print('WIP Code: ${_wipCodeController.text}');
-      print('Project Name: ${_projectNameController.text}');
-      print('Description: ${_descriptionController.text}');
-      print('Start Date: ${_startDateController.text}');
-      print('End Date: ${_endDateController.text}');
-      print('Total Amount: ${_totalAmountController.text}');
-      print('Currency: $_selectedCurrency');
-      print('From GL: $_isFromGL');
-      if (_isFromGL) {
-        print('GL Code: $_selectedGLCode');
-      }
+  Future<int> _generateWipId() async {
+    List<Wip> existingWips = await ApiService().fetchWipData();
+    if (existingWips.isEmpty) {
+      return 1;
+    }
+    int maxId = existingWips.map((b) => b.id).reduce((a, b) => a > b ? a : b);
+    return maxId + 1;
+  }
 
+  // void _saveForm() async {
+  //   if (_formKey.currentState!.validate()) {
+  //     try {
+  //       int nextID = await _generateWipId();
+  //       Wip newWip = Wip(
+  //         id: nextID,
+  //         wipCode: _wipCodeController.text,
+  //         projectName: _projectNameController.text,
+  //         startDate: DateFormat('yyyy-MM-dd').parse(_startDateController.text),
+  //         endDate: DateFormat('yyyy-MM-dd').parse(_endDateController.text),
+  //         description: _descriptionController.text,
+  //         status: 'Progress',
+  //         totalAmount: double.tryParse(_totalAmountController.text) ?? 0.0,
+  //         currency: _selectedCurrency!,
+  //       );
+  //       await ApiService().postWipData(newWip);
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Wip Form Saved Successfully'),
+  //           backgroundColor: Colors.blue,
+  //         ),
+  //       );
+  //     } catch (e) {
+  //       print('Failed to post WIP data: $e');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Failed to save WIP data: $e'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //       return;
+  //     }
+  //     print('WIP Code: ${_wipCodeController.text}');
+  //     print('Project Name: ${_projectNameController.text}');
+  //     print('Description: ${_descriptionController.text}');
+  //     print('Start Date: ${_startDateController.text}');
+  //     print('End Date: ${_endDateController.text}');
+  //     print('Total Amount: ${_totalAmountController.text}');
+  //     print('Currency: $_selectedCurrency');
+  //     print('From GL: $_isFromGL');
+  //     if (_isFromGL) {
+  //       print('GL Code: $_selectedGLCode');
+  //     }
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Form Saved Successfully'),
+  //         backgroundColor: Colors.blue,
+  //       ),
+  //     );
+  //   }
+  // }
+
+  void _saveForm() async {
+    if (_formKey.currentState!.validate()) {
+      // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Form Saved Successfully'),
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(width: 10),
+              Text('Saving WIP data...'),
+            ],
+          ),
           backgroundColor: Colors.blue,
+          duration: Duration(seconds: 5),
         ),
       );
+
+      try {
+        int nextID = await _generateWipId();
+        Wip newWip = Wip(
+          id: nextID,
+          wipCode: _wipCodeController.text,
+          projectName: _projectNameController.text,
+          startDate: DateFormat('yyyy-MM-dd').parse(_startDateController.text),
+          endDate: DateFormat('yyyy-MM-dd').parse(_endDateController.text),
+          description: _descriptionController.text,
+          status: "progress",
+          totalAmount: double.tryParse(_totalAmountController.text) ?? 0.0,
+          currency: _selectedCurrency!,
+        );
+
+        await ApiService().postWipData(newWip);
+
+        // Clear any existing snackbars
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WIP Form Saved Successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Clear the form after successful save
+        _clearForm();
+      } catch (e) {
+        // Clear any existing snackbars
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        print('Failed to post WIP data: $e');
+
+        // Show user-friendly error message
+        String errorMessage = 'Failed to save WIP data';
+        if (e.toString().contains('No Internet')) {
+          errorMessage = 'No internet connection. Please check your network.';
+        } else if (e.toString().contains('Failed to connect')) {
+          errorMessage = 'Cannot connect to server. Please try again later.';
+        } else if (e.toString().contains('timed out')) {
+          errorMessage = 'Request timed out. Please try again.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                _saveForm();
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 
