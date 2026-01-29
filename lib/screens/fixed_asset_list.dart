@@ -272,18 +272,24 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
 
   Widget _buildStatsSummary() {
     final totalAssets = _filteredFixedAssetData.length;
-    final totalValue = _filteredFixedAssetData.fold(
-      0.0,
-      (sum, asset) => sum + asset.totalAmount,
-    );
-    final activeAssets = _filteredFixedAssetData
-        .where(
-          (a) => a.assetStatus == 'ready to use' || a.assetStatus == 'finished',
-        )
+
+    // Finished status assets (instead of active assets)
+    final finishedAssets = _filteredFixedAssetData
+        .where((a) => a.assetStatus.toLowerCase() == 'finished')
         .length;
-    final currencySymbol = _filteredFixedAssetData.isNotEmpty
-        ? _getCurrencySymbol(_filteredFixedAssetData.first.transactionCurrency)
-        : '';
+
+    // No depreciation status assets
+    final noDepreciationAssets = _filteredFixedAssetData
+        .where((a) => a.assetStatus.toLowerCase() == 'no depreciation')
+        .length;
+    //ready to use
+    final readyToUseAssets = _filteredFixedAssetData
+        .where((a) => a.assetStatus.toLowerCase() == "ready to use")
+        .length;
+    // disposal
+    final disposal = _filteredFixedAssetData
+        .where((a) => a.assetStatus.toLowerCase() == "disposal")
+        .length;
 
     return Row(
       children: [
@@ -296,21 +302,44 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
           ),
         ),
         const SizedBox(width: 12),
+        // Finished Assets card
         Expanded(
           child: _buildStatCard(
-            'Active Assets',
-            activeAssets.toString(),
+            'Finished Assets',
+            finishedAssets.toString(),
             Icons.check_circle,
             Colors.green,
           ),
         ),
         const SizedBox(width: 12),
+        // Ready to Use Assets card
         Expanded(
           child: _buildStatCard(
-            'Total Value',
-            '$currencySymbol ${totalValue.toStringAsFixed(0)}',
-            Icons.attach_money,
+            'Ready to use Asset',
+            readyToUseAssets.toString(),
+            Icons.done_all_rounded,
+            Colors.blue,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // No Depreciation Assets card
+        Expanded(
+          child: _buildStatCard(
+            'No Depreciation Asset',
+            noDepreciationAssets.toString(),
+            Icons.money_off,
             Colors.orange,
+          ),
+        ),
+
+        const SizedBox(width: 12),
+        // Disposal Assets card
+        Expanded(
+          child: _buildStatCard(
+            'Disposal Assets',
+            disposal.toString(),
+            Icons.money_off,
+            Colors.black,
           ),
         ),
       ],
@@ -327,7 +356,7 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(7),
         child: Row(
           children: [
             Container(
@@ -566,11 +595,13 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
         renderer: (rendererContext) {
           final status = rendererContext.cell.value;
           Color color;
-          switch (status) {
+          switch (status.toLowerCase()) {
             case 'ready to use':
               color = Colors.blue;
             case 'finished':
               color = Colors.green;
+            case 'no depreciation':
+              color = Colors.orange;
             default:
               color = Colors.grey;
           }
@@ -622,8 +653,21 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
                   color: Colors.blue,
                 ),
                 SizedBox(width: 5),
-                if (asset.assetStatus != "No Depreciation")
-                  ElevatedButton(onPressed: () {}, child: Text("Depreciation")),
+                // Show depreciation button only if asset has depreciation method and status is not "no depreciation"
+                if (asset.depreciationMethod.isNotEmpty &&
+                    asset.assetStatus.toLowerCase() != 'no depreciation')
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                    ),
+                    child: Text("Depreciation"),
+                  ),
               ],
             ),
           );
@@ -1032,6 +1076,8 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
         return Colors.blue;
       case 'finished':
         return Colors.green;
+      case 'no depreciation':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
