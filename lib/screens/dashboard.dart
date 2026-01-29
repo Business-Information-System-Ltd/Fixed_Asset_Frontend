@@ -27,7 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     NavigationItem(
       title: 'Dashboard',
       icon: Icons.dashboard_rounded,
-      color: const Color(0xFF1A237E),
+      color: Colors.grey,
       description: 'Overview and analytics',
     ),
     NavigationItem(

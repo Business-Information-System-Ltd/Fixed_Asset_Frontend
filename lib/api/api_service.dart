@@ -11,64 +11,6 @@ class ApiService {
   final String fixedAssetEndPoint = "/fixed-assets/";
 
   //wip
-  // Future<List<Wip>> fetchWipData() async {
-  //   final response = await http.get(Uri.parse(baseUrl + wipEndPoint));
-  //   if (response.statusCode == 200) {
-  //     List<dynamic> data = json.decode(response.body);
-  //     print("WIP Data: $data");
-  //     return data.map((dynamic item) => Wip.fromJson(item)).toList();
-  //   } else {
-  //     throw Exception('Failed to load WIP data');
-  //   }
-  // }
-
-  // Future<void> postWipData(Wip newWip) async {
-  //   final jsonData = newWip.toJson();
-  //   print("Sending wip Json: $jsonData");
-  //   final response = await http.post(
-  //     Uri.parse(baseUrl + wipEndPoint),
-  //     headers: <String, String>{
-  //       'Content-Type': 'application/json; charset=UTF-8',
-  //     },
-  //     body: json.encode(jsonData),
-  //   );
-  //   print("API Wip Response Status: ${response.statusCode}");
-  //   print("API Wip Response body: ${response.body}");
-  //   if (response.statusCode != 201) {
-  //     throw Exception('Failed to post WIP data');
-  //   }
-  // }
-
-  // //wip_item
-  // Future<List<WipItem>> fetchWipItemData() async {
-  //   final response = await http.get(Uri.parse(baseUrl + wipItemEndPoint));
-  //   if (response.statusCode == 200) {
-  //     List<dynamic> data = json.decode(response.body);
-  //     print("WIP Item Data: $data");
-  //     return data.map((dynamic item) => WipItem.fromJson(item)).toList();
-  //   } else {
-  //     throw Exception('Failed to load WIP Item data');
-  //   }
-  // }
-
-  // Future<void> postWipItemData(WipItem newWipItem) async {
-  //   final jsonData = newWipItem.toJson();
-  //   print("Sending wip item Json: $jsonData");
-  //   final response = await http.post(
-  //     Uri.parse(baseUrl + wipItemEndPoint),
-  //     headers: <String, String>{
-  //       'Content-Type': 'application/json; charset=UTF-8',
-  //     },
-  //     body: json.encode(jsonData),
-  //   );
-  //   print("API Wip Item Response Status: ${response.statusCode}");
-  //   print("API Wip Item Response body: ${response.body}");
-  //   if (response.statusCode != 201) {
-  //     throw Exception('Failed to post WIP Item data');
-  //   }
-  // }
-
-  //wip
   Future<List<Wip>> fetchWipData() async {
     try {
       final response = await http.get(Uri.parse(baseUrl + wipEndPoint));
