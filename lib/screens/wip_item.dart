@@ -1,8 +1,12 @@
+import 'package:fixed_asset_frontend/api/api_service.dart';
+import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class WipItemForm extends StatefulWidget {
-  const WipItemForm({super.key});
+  final Wip? selectedWipProject;
+
+  const WipItemForm({super.key, this.selectedWipProject});
 
   @override
   State<WipItemForm> createState() => _WipItemFormState();
@@ -20,24 +24,109 @@ class _WipItemFormState extends State<WipItemForm> {
   final TextEditingController _totalCostController = TextEditingController();
   final TextEditingController _transactionDateController =
       TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _wipProjectController = TextEditingController();
 
   // Dropdown
   String? _selectedCurrency;
   String? _selectedCostType;
-  String? _selectedWipProject;
+  Wip? _selectedWipProject;
 
+  // Lists
   final List<String> _currencyOptions = ['MMK', 'USD'];
-  final List<String> _costTypeOptions = ['Cash', 'Bank', 'Credit'];
-  final List<String> _projectOptions = ['Project A', 'Project B', 'Project C'];
+  final List<String> _costTypeOptions = ['cash', 'bank'];
+  final Map<String, String> _costTypeDisplay = {'cash': 'Cash', 'bank': 'Bank'};
+
+  List<Wip> _wipProjects = [];
+  List<Wip> _filteredWipProjects = [];
+
+  bool _isLoading = false;
+  bool _isFetchingProjects = false;
+  bool _isPreselectedProject = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Check if a project was preselected
+    if (widget.selectedWipProject != null) {
+      _selectedWipProject = widget.selectedWipProject;
+      _isPreselectedProject = true;
+      _wipProjectController.text =
+          '${_selectedWipProject!.wipCode} - ${_selectedWipProject!.projectName}';
+    }
+
     // Set default values
     _selectedCurrency = _currencyOptions.first;
     _selectedCostType = _costTypeOptions.first;
-    _selectedWipProject = _projectOptions.first;
     _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    _transactionDateController.text = DateFormat(
+      'yyyy-MM-dd',
+    ).format(DateTime.now());
+
+    // Initialize lists
+    _wipProjects = [];
+    _filteredWipProjects = [];
+
+    // Fetch WIP projects (only if no preselected project)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isPreselectedProject) {
+        _fetchWipProjects();
+      }
+    });
+  }
+
+  Future<void> _fetchWipProjects() async {
+    if (_isFetchingProjects) return;
+
+    setState(() {
+      _isFetchingProjects = true;
+    });
+
+    try {
+      List<Wip> data = await ApiService().fetchWipData();
+
+      // Filter projects with "Progress" status
+      List<Wip> progressProjects = data
+          .where((project) => project.status.toLowerCase() == 'progress')
+          .toList();
+
+      print("✅ Fetched ${data.length} WIP projects");
+      print(
+        "✅ Found ${progressProjects.length} projects with 'Progress' status",
+      );
+
+      setState(() {
+        _wipProjects = data;
+        _filteredWipProjects = progressProjects;
+
+        if (progressProjects.isNotEmpty && _selectedWipProject == null) {
+          _selectedWipProject = progressProjects.first;
+          _wipProjectController.text =
+              '${_selectedWipProject!.wipCode} - ${_selectedWipProject!.projectName}';
+        }
+      });
+    } catch (e) {
+      print('❌ Error fetching WIP projects: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load WIP projects: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+
+      setState(() {
+        _wipProjects = [];
+        _filteredWipProjects = [];
+        if (!_isPreselectedProject) {
+          _selectedWipProject = null;
+        }
+      });
+    } finally {
+      setState(() {
+        _isFetchingProjects = false;
+      });
+    }
   }
 
   void _calculateTotal() {
@@ -94,34 +183,118 @@ class _WipItemFormState extends State<WipItemForm> {
     _quantityController.clear();
     _totalCostController.clear();
     _transactionDateController.clear();
+    _descriptionController.clear();
+
     setState(() {
       _selectedCurrency = _currencyOptions.first;
       _selectedCostType = _costTypeOptions.first;
-      _selectedWipProject = _projectOptions.first;
+
+      if (_isPreselectedProject && widget.selectedWipProject != null) {
+        _selectedWipProject = widget.selectedWipProject;
+        _wipProjectController.text =
+            '${_selectedWipProject!.wipCode} - ${_selectedWipProject!.projectName}';
+      } else if (_filteredWipProjects.isNotEmpty) {
+        _selectedWipProject = _filteredWipProjects.first;
+        _wipProjectController.text =
+            '${_selectedWipProject!.wipCode} - ${_selectedWipProject!.projectName}';
+      } else {
+        _selectedWipProject = null;
+        _wipProjectController.clear();
+      }
+
       _dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      _transactionDateController.text = DateFormat(
+        'yyyy-MM-dd',
+      ).format(DateTime.now());
     });
   }
 
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      // Form is valid, proceed with saving
-      print('Item Code: ${_itemCodeController.text}');
-      print('Date: ${_dateController.text}');
-      print('Item Name: ${_itemNameController.text}');
-      print('Unit Cost: ${_unitCostController.text} $_selectedCurrency');
-      print('Quantity: ${_quantityController.text}');
-      print('Total Cost: ${_totalCostController.text}');
-      print('Cost Type: $_selectedCostType');
-      print('Transaction Date: ${_transactionDateController.text}');
-      print('WIP Project: $_selectedWipProject');
+  // NEW: Update WIP project total after saving item
+  Future<void> _updateWipProjectTotal() async {
+    if (_selectedWipProject == null) return;
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Form submitted successfully!'),
-          backgroundColor: Colors.blue,
-        ),
+    try {
+      print(
+        '🔄 Updating WIP project total for ${_selectedWipProject!.wipCode}',
       );
+      await ApiService().calculateAndUpdateWipTotal(_selectedWipProject!.id);
+      print('✅ WIP project total updated successfully');
+    } catch (e) {
+      print('❌ Error updating WIP project total: $e');
+    }
+  }
+
+  Future<void> _saveForm() async {
+    if (_formKey.currentState!.validate()) {
+      if (_selectedWipProject == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a WIP project'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Create WipItem object
+        final wipItem = WipItem(
+          id: 0,
+          itemCode: _itemCodeController.text.trim(),
+          itemName: _itemNameController.text.trim(),
+          costType: _selectedCostType!,
+          description: _descriptionController.text.trim(),
+          quantity: double.parse(_quantityController.text),
+          unitCost: double.parse(_unitCostController.text),
+          totalCost: double.parse(_totalCostController.text),
+          currency: _selectedCurrency!,
+          transactionDate: DateTime.parse(_transactionDateController.text),
+          wipId: _selectedWipProject!.id,
+          wipCode: _selectedWipProject!.wipCode,
+        );
+
+        print('📤 Submitting WIP Item:');
+        print('   Item Code: ${wipItem.itemCode}');
+        print('   Total Cost: ${wipItem.totalCost} ${wipItem.currency}');
+        print('   WIP Project: ${wipItem.wipCode} (ID: ${wipItem.wipId})');
+
+        // Save WIP item
+        await ApiService().postWipItemData(wipItem);
+
+        // ✅ CRITICAL: Update the WIP project total amount
+        await _updateWipProjectTotal();
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WIP Item saved successfully! WIP total updated.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Clear form after successful save
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _clearForm();
+        });
+      } catch (e) {
+        print('❌ Error saving WIP item: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save WIP item: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -134,6 +307,8 @@ class _WipItemFormState extends State<WipItemForm> {
     _quantityController.dispose();
     _totalCostController.dispose();
     _transactionDateController.dispose();
+    _descriptionController.dispose();
+    _wipProjectController.dispose();
     super.dispose();
   }
 
@@ -141,7 +316,11 @@ class _WipItemFormState extends State<WipItemForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WIP_Item Form'),
+        title: Text(
+          _isPreselectedProject
+              ? 'Add Item to ${_selectedWipProject?.wipCode}'
+              : 'WIP Item Form',
+        ),
         centerTitle: true,
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
@@ -150,7 +329,7 @@ class _WipItemFormState extends State<WipItemForm> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: Container(
-            constraints: BoxConstraints(maxWidth: 600, minWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 600, minWidth: 500),
             padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -170,10 +349,10 @@ class _WipItemFormState extends State<WipItemForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  const Center(
+                  Center(
                     child: Text(
-                      'WIP_Item Form',
-                      style: TextStyle(
+                      _isPreselectedProject ? 'Add WIP Item' : 'WIP Item Form',
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.blue,
@@ -190,7 +369,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Item code',
+                              'Item Code *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -266,7 +445,7 @@ class _WipItemFormState extends State<WipItemForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Item Name',
+                        'Item Name *',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -297,6 +476,37 @@ class _WipItemFormState extends State<WipItemForm> {
 
                   const SizedBox(height: 20),
 
+                  // Description
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Description',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'Enter description (optional)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.0),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
                   // Unit Cost, Currency, Quantity, Total Cost
                   Row(
                     children: [
@@ -305,7 +515,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Unit Cost',
+                              'Unit Cost *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -314,7 +524,10 @@ class _WipItemFormState extends State<WipItemForm> {
                             const SizedBox(height: 4),
                             TextFormField(
                               controller: _unitCostController,
-                              keyboardType: TextInputType.number,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: InputDecoration(
                                 hintText: '0.00',
                                 border: OutlineInputBorder(
@@ -339,14 +552,14 @@ class _WipItemFormState extends State<WipItemForm> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 10),
                       SizedBox(
                         width: 100,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Currency',
+                              'Currency *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -387,12 +600,12 @@ class _WipItemFormState extends State<WipItemForm> {
                       ),
                       const SizedBox(width: 10),
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Quantity',
+                              'Quantity *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -401,20 +614,20 @@ class _WipItemFormState extends State<WipItemForm> {
                             const SizedBox(height: 4),
                             TextFormField(
                               controller: _quantityController,
-                              keyboardType: TextInputType.number,
-
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: InputDecoration(
-                                hintText: '0',
+                                hintText: '0.00',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
-
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 10,
                                 ),
                               ),
-
                               onChanged: (_) => _calculateTotal(),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -466,7 +679,53 @@ class _WipItemFormState extends State<WipItemForm> {
 
                   const SizedBox(height: 20),
 
-                  // Cost Type, Transaction Date, WIP Project
+                  // Cost Type Dropdown
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Cost Type *',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      DropdownButtonFormField<String>(
+                        value: _selectedCostType,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4.0),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        items: _costTypeOptions.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(_costTypeDisplay[type] ?? type),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCostType = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Select cost type';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Transaction Date and WIP Project
                   Row(
                     children: [
                       Expanded(
@@ -474,52 +733,7 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Cost Type',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            DropdownButtonFormField<String>(
-                              value: _selectedCostType,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                              items: _costTypeOptions.map((type) {
-                                return DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCostType = value;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Select cost type';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Transaction Date',
+                              'Transaction Date *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -562,46 +776,153 @@ class _WipItemFormState extends State<WipItemForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'WIP Project',
+                              'WIP Project *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            DropdownButtonFormField<String>(
-                              value: _selectedWipProject,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
+                            if (_isPreselectedProject)
+                              TextFormField(
+                                controller: _wipProjectController,
+                                readOnly: true,
+                                decoration: InputDecoration(
+                                  hintText: 'Select WIP project',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
+                                validator: (value) {
+                                  if (_selectedWipProject == null) {
+                                    return 'WIP project is required';
+                                  }
+                                  return null;
+                                },
+                              )
+                            else if (_filteredWipProjects.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
-                                  vertical: 10,
+                                  vertical: 16,
                                 ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4.0),
+                                  color: Colors.grey.shade100,
+                                ),
+                                child: const Text(
+                                  'No Progress projects available',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              )
+                            else
+                              DropdownButtonFormField<Wip>(
+                                value: _selectedWipProject,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                ),
+                                items: _filteredWipProjects.map((project) {
+                                  return DropdownMenuItem<Wip>(
+                                    value: project,
+                                    child: Text(
+                                      '${project.wipCode} - ${project.projectName}',
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedWipProject = value;
+                                    _wipProjectController.text =
+                                        '${value!.wipCode} - ${value.projectName}';
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Select a WIP project';
+                                  }
+                                  return null;
+                                },
+                                isExpanded: true,
                               ),
-                              items: _projectOptions.map((project) {
-                                return DropdownMenuItem(
-                                  value: project,
-                                  child: Text(project),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedWipProject = value;
-                                });
-                              },
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Select project';
-                                }
-                                return null;
-                              },
-                            ),
                           ],
                         ),
                       ),
                     ],
+                  ),
+
+                  // Info message
+                  if (!_isPreselectedProject && _filteredWipProjects.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info, color: Colors.orange[800], size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'No WIP projects with "Progress" status found. Please create a Progress project first.',
+                              style: TextStyle(
+                                color: Colors.orange[800],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _fetchWipProjects,
+                            child: const Text(
+                              'Refresh',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // Note about auto-calculation
+                  Container(
+                    margin: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue[800],
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Note: The total amount of the WIP project will be automatically updated with this item\'s cost.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 40),
@@ -611,9 +932,18 @@ class _WipItemFormState extends State<WipItemForm> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
-                        onPressed: _saveForm,
+                        onPressed:
+                            (_isLoading ||
+                                (!_isPreselectedProject &&
+                                    _filteredWipProjects.isEmpty))
+                            ? null
+                            : _saveForm,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[800],
+                          backgroundColor:
+                              (!_isPreselectedProject &&
+                                  _filteredWipProjects.isEmpty)
+                              ? Colors.grey
+                              : Colors.blue[800],
                           padding: const EdgeInsets.symmetric(
                             horizontal: 40,
                             vertical: 12,
@@ -622,18 +952,29 @@ class _WipItemFormState extends State<WipItemForm> {
                             borderRadius: BorderRadius.circular(4.0),
                           ),
                         ),
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 20),
                       OutlinedButton(
-                        onPressed: _clearForm,
+                        onPressed: _isLoading ? null : _clearForm,
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 40,

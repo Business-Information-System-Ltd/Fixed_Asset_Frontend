@@ -543,14 +543,13 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
           final row = rendererContext.row;
           final amount = row.cells['home_total_amount']!.value;
           final currency = row.cells['home_currency']!.value;
-          return Center(
-            child: Text(
-              '$currency ${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-                fontSize: isSmallScreen ? 12 : 14,
-              ),
+          return Text(
+            '$currency ${amount.toStringAsFixed(2)}',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+              fontSize: isSmallScreen ? 12 : 14,
             ),
           );
         },
@@ -561,18 +560,19 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
         field: 'home_accumulated_depreciation',
         enableEditingMode: false,
         type: PlutoColumnType.currency(),
+        textAlign: PlutoColumnTextAlign.end,
+        titleTextAlign: PlutoColumnTextAlign.end,
         width: isSmallScreen ? 180 : 200,
         renderer: (rendererContext) {
           final row = rendererContext.row;
           final amount = row.cells['home_accumulated_depreciation']!.value;
           final currency = row.cells['home_currency']!.value;
-          return Center(
-            child: Text(
-              '$currency ${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: isSmallScreen ? 12 : 14,
-              ),
+          return Text(
+            '$currency ${amount.toStringAsFixed(2)}',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: isSmallScreen ? 12 : 14,
             ),
           );
         },
@@ -591,7 +591,7 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
         field: 'asset_status',
         enableEditingMode: false,
         type: PlutoColumnType.text(),
-        width: isSmallScreen ? 100 : 120,
+        width: isSmallScreen ? 120 : 140,
         renderer: (rendererContext) {
           final status = rendererContext.cell.value;
           Color color;
@@ -653,11 +653,13 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
                   color: Colors.blue,
                 ),
                 SizedBox(width: 5),
-                // Show depreciation button only if asset has depreciation method and status is not "no depreciation"
-                if (asset.depreciationMethod.isNotEmpty &&
-                    asset.assetStatus.toLowerCase() != 'no depreciation')
+                if (asset.assetStatus.toLowerCase() == 'ready to use')
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      print(
+                        'Depreciation button clicked for ${asset.fixedAssetCode}',
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,

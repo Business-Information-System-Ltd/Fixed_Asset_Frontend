@@ -143,7 +143,13 @@ class Wip {
       if (value == null) return 0;
       if (value is int) return value;
       if (value is String) {
-        return int.tryParse(value) ?? 0;
+        // Try to parse as int
+        final parsed = int.tryParse(value);
+        if (parsed != null) return parsed;
+
+        // If it's a numeric string with extra characters
+        final numericString = value.replaceAll(RegExp(r'[^0-9]'), '');
+        return int.tryParse(numericString) ?? 0;
       }
       return 0;
     }
@@ -153,9 +159,8 @@ class Wip {
       if (dateValue == null) return DateTime.now();
       try {
         if (dateValue is String) {
-          return DateTime.parse(dateValue);
+          return DateTime.parse(dateValue.split('T')[0]); // Handle ISO format
         }
-        // If it's already a DateTime (unlikely), return as is
         return dateValue;
       } catch (e) {
         print('Error parsing date: $dateValue, error: $e');
@@ -176,14 +181,14 @@ class Wip {
 
     return Wip(
       id: parseId(json['wip_id']),
-      wipCode: json['wip_code']?.toString() ?? '',
-      projectName: json['project_name']?.toString() ?? '',
+      wipCode: (json['wip_code']?.toString() ?? '').trim(),
+      projectName: (json['project_name']?.toString() ?? '').trim(),
       startDate: parseDate(json['start_date']),
       endDate: parseDate(json['end_date']),
-      description: json['description']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'progress',
+      description: (json['description']?.toString() ?? '').trim(),
+      status: (json['status']?.toString() ?? 'progress').trim(),
       totalAmount: parseDouble(json['total_amount']),
-      currency: json['currency']?.toString() ?? 'MMK',
+      currency: (json['currency']?.toString() ?? 'MMK').trim(),
     );
   }
 
@@ -206,9 +211,9 @@ class WipItem {
   final int id;
   final String itemCode;
   final String itemName;
-  final String costType;
+  final String costType; // Should be lowercase: 'cash' or 'bank'
   final String description;
-  final int quantity;
+  final double quantity; // Changed from int to double
   final double unitCost;
   final double totalCost;
   final String currency;
@@ -237,8 +242,12 @@ class WipItem {
       if (value == null) return 0;
       if (value is int) return value;
       if (value is String) {
-        return int.tryParse(value) ?? 0;
+        final parsed = int.tryParse(value);
+        if (parsed != null) return parsed;
+        final numericString = value.replaceAll(RegExp(r'[^0-9]'), '');
+        return int.tryParse(numericString) ?? 0;
       }
+      if (value is double) return value.toInt();
       return 0;
     }
 
@@ -252,21 +261,11 @@ class WipItem {
       return 0.0;
     }
 
-    int parseInt(dynamic value) {
-      if (value == null) return 0;
-      if (value is int) return value;
-      if (value is String) {
-        return int.tryParse(value) ?? 0;
-      }
-      if (value is double) return value.toInt();
-      return 0;
-    }
-
     DateTime parseDate(dynamic dateValue) {
       if (dateValue == null) return DateTime.now();
       try {
         if (dateValue is String) {
-          return DateTime.parse(dateValue);
+          return DateTime.parse(dateValue.split('T')[0]);
         }
         return dateValue;
       } catch (e) {
@@ -276,35 +275,33 @@ class WipItem {
     }
 
     return WipItem(
-      id: parseId(json['item_id']),
-      itemCode: json['item_code']?.toString() ?? '',
-      itemName: json['item_name']?.toString() ?? '',
-      costType: json['cost_type']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      quantity: parseInt(json['quantity']),
+      id: parseId(json['wip_item_id'] ?? json['item_id']),
+      itemCode: (json['item_code']?.toString() ?? '').trim(),
+      itemName: (json['item_name']?.toString() ?? '').trim(),
+      costType: (json['cost_type']?.toString() ?? '').trim(),
+      description: (json['description']?.toString() ?? '').trim(),
+      quantity: parseDouble(json['quantity']),
       unitCost: parseDouble(json['unit_cost']),
       totalCost: parseDouble(json['total_cost']),
-      currency: json['currency']?.toString() ?? 'MMK',
+      currency: (json['currency']?.toString() ?? 'MMK').trim(),
       transactionDate: parseDate(json['transaction_date']),
-      wipId: parseId(json['wip_id']),
-      wipCode: json['wip_code']?.toString() ?? '',
+      wipId: parseId(json['wip'] ?? json['wip_id']), // Django uses 'wip' field
+      wipCode: (json['wip_code']?.toString() ?? '').trim(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'item_id': id,
       'item_code': itemCode,
       'item_name': itemName,
-      'cost_type': costType,
+      'cost_type': costType.toLowerCase(), // Must be lowercase for Django
       'description': description,
       'quantity': quantity,
       'unit_cost': unitCost,
       'total_cost': totalCost,
       'currency': currency,
       'transaction_date': DateFormat('yyyy-MM-dd').format(transactionDate),
-      'wip_id': wipId,
-      'wip_code': wipCode,
+      'wip': wipId, // Key fix: Django expects 'wip' not 'wip_id'
     };
   }
 }

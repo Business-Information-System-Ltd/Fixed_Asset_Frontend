@@ -32,6 +32,7 @@ class _WIPListScreenState extends State<WIPListScreen> {
   int _currentPage = 1;
   int _rowsPerPage = 10;
   final ScrollController _scrollController = ScrollController();
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -46,21 +47,48 @@ class _WIPListScreenState extends State<WIPListScreen> {
     super.dispose();
   }
 
-  void _fetchData() async {
+  Future<void> _fetchData() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
     try {
       List<Wip> data = await ApiService().fetchWipData();
       List<WipItem> wipItem = await ApiService().fetchWipItemData();
       setState(() {
         wipData = data;
         wipItemData = wipItem;
-        print("Wip count: ${data.length}");
-        print("Wip_item count: ${wipItem.length}");
+        print("✅ WIP Projects loaded: ${data.length}");
+        print("✅ WIP Items loaded: ${wipItem.length}");
       });
       _applyDateFilter();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load data: ${e.toString()}')),
       );
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
+  }
+
+  // Refresh WIP project totals
+  Future<void> _refreshWipTotals() async {
+    try {
+      for (var project in wipData) {
+        await ApiService().calculateAndUpdateWipTotal(project.id);
+      }
+      await _fetchData(); // Refresh data after updating totals
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('WIP totals refreshed successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error refreshing WIP totals: $e');
     }
   }
 
@@ -140,7 +168,6 @@ class _WIPListScreenState extends State<WIPListScreen> {
   }
 
   List<PlutoColumn> _buildColumns([double screenWidth = 1024]) {
-    // Responsive column widths based on screen size
     final isSmallScreen = screenWidth < 768;
     final isMediumScreen = screenWidth < 1024;
 
@@ -240,15 +267,50 @@ class _WIPListScreenState extends State<WIPListScreen> {
           final row = rendererContext.row;
           final amount = row.cells['total_amount']!.value;
           final currency = row.cells['currency']!.value;
-          return Center(
-            child: Text(
-              '$currency ${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-                fontSize: isSmallScreen ? 12 : 14,
-              ),
+
+          // Calculate total from items for verification
+          final wipCode = row.cells['wip_code']!.value as String;
+          final project = wipData.firstWhere(
+            (p) => p.wipCode == wipCode,
+            orElse: () => Wip(
+              id: 0,
+              wipCode: '',
+              projectName: '',
+              startDate: DateTime.now(),
+              endDate: DateTime.now(),
+              description: '',
+              status: '',
+              totalAmount: 0.0,
+              currency: 'MMK',
             ),
+          );
+
+          final itemsTotal = _calculateProjectItemsTotal(project.id);
+          final showWarning =
+              project.id > 0 && (project.totalAmount - itemsTotal).abs() > 0.01;
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Text(
+              //   '$currency ${amount.toStringAsFixed(2)}',
+              //   style: TextStyle(
+              //     fontWeight: FontWeight.bold,
+              //     color: showWarning ? Colors.orange : Colors.blue,
+              //     fontSize: isSmallScreen ? 12 : 14,
+              //   ),
+              // ),
+              if (showWarning)
+                Text(
+                  '$currency ${itemsTotal.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -257,7 +319,7 @@ class _WIPListScreenState extends State<WIPListScreen> {
         field: 'actions',
         enableEditingMode: false,
         type: PlutoColumnType.text(),
-        width: 150,
+        width: 180,
         renderer: (rendererContext) {
           final row = rendererContext.row;
           final wipCode = row.cells['wip_code']!.value as String;
@@ -265,8 +327,6 @@ class _WIPListScreenState extends State<WIPListScreen> {
 
           return Center(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // View Items Button
                 Tooltip(
@@ -278,25 +338,33 @@ class _WIPListScreenState extends State<WIPListScreen> {
                       color: Colors.blue,
                     ),
                     onPressed: () {
-                      _showWIPItems(project.id);
+                      _showWIPItems(project);
                     },
                   ),
                 ),
                 const SizedBox(width: 8),
                 // Add Item Button
-                Tooltip(
-                  message: 'Add WIP Item',
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      size: 18,
-                      color: Colors.green,
-                    ),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => WipItemForm()),
+                if (project.status.toLowerCase() == "progress")
+                  Tooltip(
+                    message: 'Add WIP Item to this project',
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        size: 18,
+                        color: Colors.green,
+                      ),
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                WipItemForm(selectedWipProject: project),
+                          ),
+                        );
+                        // Refresh data after returning
+                        _fetchData();
+                      },
                     ),
                   ),
-                ),
               ],
             ),
           );
@@ -335,6 +403,39 @@ class _WIPListScreenState extends State<WIPListScreen> {
     }).toList();
   }
 
+  // Calculate total for a specific project
+  double _calculateProjectItemsTotal(int projectId) {
+    return wipItemData
+        .where((item) => item.wipId == projectId)
+        .fold(0.0, (sum, item) => sum + item.totalCost);
+  }
+
+  void _showWIPItems(Wip project) {
+    print("\n🔍 Loading WIP Items for:");
+    print("   Project: ${project.wipCode} (ID: ${project.id})");
+
+    setState(() {
+      expandedRowId = project.id;
+      showWIPItems = true;
+
+      _filteredWipItems = wipItemData
+          .where(
+            (item) =>
+                item.wipCode.trim().toLowerCase() ==
+                project.wipCode.trim().toLowerCase(),
+          )
+          .toList();
+
+      if (_filteredWipItems.isEmpty) {
+        _filteredWipItems = wipItemData
+            .where((item) => item.wipId == project.id)
+            .toList();
+      }
+
+      print("   ✅ Successfully loaded ${_filteredWipItems.length} items");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -345,6 +446,28 @@ class _WIPListScreenState extends State<WIPListScreen> {
         title: const Text('Work In Progress (WIP) Projects'),
         backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
+        actions: [
+          if (_isRefreshing)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _fetchData,
+              tooltip: 'Refresh Data',
+            ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -367,6 +490,28 @@ class _WIPListScreenState extends State<WIPListScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    // Refresh All Totals Button
+                    OutlinedButton.icon(
+                      icon: Icon(Icons.calculate, size: 20),
+                      label: Text(
+                        'Refresh All Totals',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: _refreshWipTotals,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orange[800],
+                        side: BorderSide(color: Colors.orange.shade800),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Add New WIP Project Button
                     ElevatedButton.icon(
                       icon: const Icon(
                         Icons.add,
@@ -381,14 +526,51 @@ class _WIPListScreenState extends State<WIPListScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => WipForm()),
                         );
+                        _fetchData();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[800],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Add WIP Item Button
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Add WIP Item',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WipItemForm(),
+                          ),
+                        );
+                        _fetchData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
                         padding: const EdgeInsets.symmetric(
                           horizontal: 30,
                           vertical: 12,
@@ -497,22 +679,28 @@ class _WIPListScreenState extends State<WIPListScreen> {
     );
   }
 
-  void _showWIPItems(int projectId) {
-    setState(() {
-      expandedRowId = projectId;
-      showWIPItems = true;
-      _filteredWipItems = wipItemData
-          .where((item) => item.wipId == projectId)
-          .toList();
-    });
-  }
-
   Widget _buildWIPItemDetails() {
     if (expandedRowId == null) return Container();
 
     final project = wipData.firstWhere((p) => p.id == expandedRowId);
+    _filteredWipItems = wipItemData
+        .where(
+          (item) =>
+              item.wipCode.trim().toLowerCase() ==
+              project.wipCode.trim().toLowerCase(),
+        )
+        .toList();
+
+    if (_filteredWipItems.isEmpty) {
+      _filteredWipItems = wipItemData
+          .where((item) => item.wipId == expandedRowId)
+          .toList();
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 768;
+    final itemsTotal = _calculateProjectItemsTotal(project.id);
+    final showWarning = (project.totalAmount - itemsTotal).abs() > 0.01;
 
     return Container(
       decoration: BoxDecoration(
@@ -553,15 +741,58 @@ class _WIPListScreenState extends State<WIPListScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    setState(() {
-                      showWIPItems = false;
-                      expandedRowId = null;
-                    });
-                  },
-                  tooltip: 'Back to Projects',
+                Row(
+                  children: [
+                    // Add Item Button
+                    if (project.status.toLowerCase() == "progress")
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Item'),
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  WipItemForm(selectedWipProject: project),
+                            ),
+                          );
+                          _fetchData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 10),
+                    // Refresh Button
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Colors.blue[800]),
+                      onPressed: () async {
+                        await _fetchData();
+                        final updatedProject = wipData.firstWhere(
+                          (p) => p.id == expandedRowId,
+                          orElse: () => project,
+                        );
+                        _showWIPItems(updatedProject);
+                      },
+                      tooltip: 'Refresh Items',
+                    ),
+                    // Close Button
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        setState(() {
+                          showWIPItems = false;
+                          expandedRowId = null;
+                          _filteredWipItems = [];
+                        });
+                      },
+                      tooltip: 'Back to Projects',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -610,9 +841,9 @@ class _WIPListScreenState extends State<WIPListScreen> {
                       Colors.blue,
                     ),
                     _buildSummaryItem(
-                      'Total Amount',
-                      '${project.currency} ${project.totalAmount.toStringAsFixed(2)}',
-                      Colors.green,
+                      'Currency',
+                      project.currency,
+                      Colors.purple,
                     ),
                   ],
                 ),
@@ -625,24 +856,85 @@ class _WIPListScreenState extends State<WIPListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  Text(
-                    'WIP Items (${_filteredWipItems.length})',
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 16 : 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'WIP Items (${_filteredWipItems.length})',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (_filteredWipItems.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Sum of Items: ${project.currency} ${itemsTotal.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: showWarning
+                                    ? Colors.orange
+                                    : Colors.green,
+                                fontSize: isSmallScreen ? 14 : 16,
+                              ),
+                            ),
+                            // if (showWarning)
+                            //   Text(
+                            //     '⚠️ Different from project total',
+                            //     style: TextStyle(
+                            //       fontSize: 10,
+                            //       color: Colors.orange[800],
+                            //       fontStyle: FontStyle.italic,
+                            //     ),
+                            //   ),
+                          ],
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   if (_filteredWipItems.isEmpty)
                     Expanded(
                       child: Center(
-                        child: Text(
-                          'No WIP items found for this project',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                            fontSize: isSmallScreen ? 14 : 16,
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No WIP items found for this project',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontStyle: FontStyle.italic,
+                                fontSize: isSmallScreen ? 14 : 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (project.status.toLowerCase() == "progress")
+                              ElevatedButton.icon(
+                                icon: Icon(Icons.add, size: 16),
+                                label: Text('Add WIP Item'),
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => WipItemForm(
+                                        selectedWipProject: project,
+                                      ),
+                                    ),
+                                  );
+                                  _fetchData();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     )
@@ -755,32 +1047,77 @@ class _WIPListScreenState extends State<WIPListScreen> {
                         ),
                       ),
                     ),
-                  // Total Amount
+                  // Total Amount Comparison
                   Container(
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.green[50],
+                      color: showWarning ? Colors.orange[50] : Colors.green[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                      border: Border.all(
+                        color: showWarning
+                            ? Colors.orange.shade200
+                            : Colors.green.shade200,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
                       children: [
-                        Text(
-                          'Project Total:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: isSmallScreen ? 14 : 16,
-                          ),
-                        ),
-                        Text(
-                          '${project.currency} ${project.totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                            fontSize: isSmallScreen ? 16 : 20,
-                          ),
+                        // if (showWarning)
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(top: 12.0),
+                        //     child: Row(
+                        //       children: [
+                        //         Icon(
+                        //           Icons.warning,
+                        //           color: Colors.orange[800],
+                        //           size: 16,
+                        //         ),
+                        //         const SizedBox(width: 8),
+                        //         ElevatedButton(
+                        //           onPressed: () async {
+                        //             await ApiService()
+                        //                 .calculateAndUpdateWipTotal(project.id);
+                        //             await _fetchData();
+                        //             final updatedProject = wipData.firstWhere(
+                        //               (p) => p.id == expandedRowId,
+                        //               orElse: () => project,
+                        //             );
+                        //             _showWIPItems(updatedProject);
+                        //           },
+                        //           child: Text('Refresh Total'),
+                        //           style: ElevatedButton.styleFrom(
+                        //             backgroundColor: Colors.orange[800],
+                        //             foregroundColor: Colors.white,
+                        //             padding: const EdgeInsets.symmetric(
+                        //               horizontal: 16,
+                        //               vertical: 8,
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       ],
+                        //     ),
+                        //   ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Total Project Amount:',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 14 : 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '${project.currency} ${itemsTotal.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 16 : 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -792,6 +1129,10 @@ class _WIPListScreenState extends State<WIPListScreen> {
         ],
       ),
     );
+  }
+
+  double _calculateItemsTotal() {
+    return _filteredWipItems.fold(0.0, (sum, item) => sum + item.totalCost);
   }
 
   Widget _buildSummaryItem(String label, String value, Color color) {

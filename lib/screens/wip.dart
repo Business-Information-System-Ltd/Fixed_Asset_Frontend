@@ -32,6 +32,8 @@ class _WipFormState extends State<WipForm> {
   final List<String> _GLCodeOptions = ['1001', '1002', '1003', '1004'];
 
   List<Wip> wip_data = [];
+  double _calculatedTotal = 0.0;
+  bool _isCalculatingTotal = false;
 
   @override
   void initState() {
@@ -49,6 +51,64 @@ class _WipFormState extends State<WipForm> {
       });
     } catch (e) {
       print('Fail to load wip data : $e');
+    }
+  }
+
+  // Calculate total for existing project
+  Future<void> _calculateAndDisplayTotal() async {
+    if (_wipCodeController.text.isEmpty) {
+      setState(() {
+        _calculatedTotal = 0.0;
+        _totalAmountController.text = '0.00';
+      });
+      return;
+    }
+
+    setState(() {
+      _isCalculatingTotal = true;
+    });
+
+    try {
+      // Find the project by wipCode
+      final project = wip_data.firstWhere(
+        (p) => p.wipCode == _wipCodeController.text,
+        orElse: () => Wip(
+          id: 0,
+          wipCode: '',
+          projectName: '',
+          startDate: DateTime.now(),
+          endDate: DateTime.now(),
+          description: '',
+          status: '',
+          totalAmount: 0.0,
+          currency: 'MMK',
+        ),
+      );
+
+      if (project.id > 0) {
+        // Calculate total from API
+        final total = await ApiService().calculateWipTotalAmount(project.id);
+        setState(() {
+          _calculatedTotal = total;
+          _totalAmountController.text = total.toStringAsFixed(2);
+        });
+        print('Calculated total for ${project.wipCode}: $total');
+      } else {
+        setState(() {
+          _calculatedTotal = 0.0;
+          _totalAmountController.text = '0.00';
+        });
+      }
+    } catch (e) {
+      print('Error calculating WIP total: $e');
+      setState(() {
+        _calculatedTotal = 0.0;
+        _totalAmountController.text = '0.00';
+      });
+    } finally {
+      setState(() {
+        _isCalculatingTotal = false;
+      });
     }
   }
 
@@ -92,6 +152,7 @@ class _WipFormState extends State<WipForm> {
       _selectedCurrency = _currencyOptions.first;
       _selectedGLCode = _GLCodeOptions.first;
       _isFromGL = false;
+      _calculatedTotal = 0.0;
     });
   }
 
@@ -103,59 +164,6 @@ class _WipFormState extends State<WipForm> {
     int maxId = existingWips.map((b) => b.id).reduce((a, b) => a > b ? a : b);
     return maxId + 1;
   }
-
-  // void _saveForm() async {
-  //   if (_formKey.currentState!.validate()) {
-  //     try {
-  //       int nextID = await _generateWipId();
-  //       Wip newWip = Wip(
-  //         id: nextID,
-  //         wipCode: _wipCodeController.text,
-  //         projectName: _projectNameController.text,
-  //         startDate: DateFormat('yyyy-MM-dd').parse(_startDateController.text),
-  //         endDate: DateFormat('yyyy-MM-dd').parse(_endDateController.text),
-  //         description: _descriptionController.text,
-  //         status: 'Progress',
-  //         totalAmount: double.tryParse(_totalAmountController.text) ?? 0.0,
-  //         currency: _selectedCurrency!,
-  //       );
-  //       await ApiService().postWipData(newWip);
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Wip Form Saved Successfully'),
-  //           backgroundColor: Colors.blue,
-  //         ),
-  //       );
-  //     } catch (e) {
-  //       print('Failed to post WIP data: $e');
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Failed to save WIP data: $e'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //       return;
-  //     }
-  //     print('WIP Code: ${_wipCodeController.text}');
-  //     print('Project Name: ${_projectNameController.text}');
-  //     print('Description: ${_descriptionController.text}');
-  //     print('Start Date: ${_startDateController.text}');
-  //     print('End Date: ${_endDateController.text}');
-  //     print('Total Amount: ${_totalAmountController.text}');
-  //     print('Currency: $_selectedCurrency');
-  //     print('From GL: $_isFromGL');
-  //     if (_isFromGL) {
-  //       print('GL Code: $_selectedGLCode');
-  //     }
-
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //         content: Text('Form Saved Successfully'),
-  //         backgroundColor: Colors.blue,
-  //       ),
-  //     );
-  //   }
-  // }
 
   void _saveForm() async {
     if (_formKey.currentState!.validate()) {
@@ -184,7 +192,7 @@ class _WipFormState extends State<WipForm> {
           endDate: DateFormat('yyyy-MM-dd').parse(_endDateController.text),
           description: _descriptionController.text,
           status: "progress",
-          totalAmount: double.tryParse(_totalAmountController.text) ?? 0.0,
+          totalAmount: 0.0, // Will be calculated from items
           currency: _selectedCurrency!,
         );
 
@@ -203,13 +211,13 @@ class _WipFormState extends State<WipForm> {
 
         // Clear the form after successful save
         _clearForm();
+        _fetchData(); // Refresh the list
       } catch (e) {
         // Clear any existing snackbars
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         print('Failed to post WIP data: $e');
 
-        // Show user-friendly error message
         String errorMessage = 'Failed to save WIP data';
         if (e.toString().contains('No Internet')) {
           errorMessage = 'No internet connection. Please check your network.';
@@ -300,7 +308,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'WIP Code',
+                              'WIP Code *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -325,6 +333,16 @@ class _WipFormState extends State<WipForm> {
                                 }
                                 return null;
                               },
+                              onChanged: (value) {
+                                if (value.isNotEmpty) {
+                                  // Calculate total when WIP code changes
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    _calculateAndDisplayTotal();
+                                  });
+                                }
+                              },
                             ),
                           ],
                         ),
@@ -335,7 +353,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Project Name",
+                              "Project Name *",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -406,7 +424,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Start Date',
+                              'Start Date *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -449,7 +467,7 @@ class _WipFormState extends State<WipForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'End Date',
+                              'End Date *',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -489,60 +507,16 @@ class _WipFormState extends State<WipForm> {
                     ],
                   ),
 
-                  // Single Row: Total Amount, Currency, From GL checkbox, and GL Code dropdown
+                  // Currency
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      // Total Amount
                       Expanded(
-                        flex: 2,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Total Amount",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                              controller: _totalAmountController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: '0.00',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter Total Amount';
-                                }
-                                if (double.tryParse(value) == null) {
-                                  return 'Please enter a valid number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Currency
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Currency',
+                              "Currency *",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -556,8 +530,8 @@ class _WipFormState extends State<WipForm> {
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
                               ),
                               items: _currencyOptions.map((currency) {
@@ -581,11 +555,10 @@ class _WipFormState extends State<WipForm> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 20),
 
                       // From GL Checkbox
                       Expanded(
-                        flex: 1,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -607,7 +580,6 @@ class _WipFormState extends State<WipForm> {
                                     onChanged: (value) {
                                       setState(() {
                                         _isFromGL = value!;
-                                        // Reset GL Code when checkbox is unchecked
                                         if (!_isFromGL) {
                                           _selectedGLCode =
                                               _GLCodeOptions.first;
@@ -628,58 +600,161 @@ class _WipFormState extends State<WipForm> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
+                    ],
+                  ),
 
-                      // GL Code Dropdown (Conditional)
-                      if (_isFromGL)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'GL Code',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              DropdownButtonFormField<String>(
-                                value: _selectedGLCode,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                ),
-                                items: _GLCodeOptions.map((code) {
-                                  return DropdownMenuItem(
-                                    value: code,
-                                    child: Text(code),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedGLCode = value;
-                                  });
-                                },
-                                validator: _isFromGL
-                                    ? (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Select GL Code';
-                                        }
-                                        return null;
-                                      }
-                                    : null,
-                              ),
-                            ],
+                  // GL Code Dropdown (Conditional)
+                  if (_isFromGL)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        const Text(
+                          'GL Code *',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        DropdownButtonFormField<String>(
+                          value: _selectedGLCode,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4.0),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                          ),
+                          items: _GLCodeOptions.map((code) {
+                            return DropdownMenuItem(
+                              value: code,
+                              child: Text(code),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedGLCode = value;
+                            });
+                          },
+                          validator: _isFromGL
+                              ? (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Select GL Code';
+                                  }
+                                  return null;
+                                }
+                              : null,
+                        ),
+                      ],
+                    ),
+
+                  // Auto-calculated Total Amount Display
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calculate,
+                              color: Colors.green[800],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Amount (Auto-calculated from WIP Items)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.green[900],
+                              ),
+                            ),
+                            if (_isCalculatingTotal)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Current Total:',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                Text(
+                                  '${_selectedCurrency} ${_calculatedTotal.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_wipCodeController.text.isNotEmpty)
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.refresh, size: 18),
+                                label: const Text('Recalculate'),
+                                onPressed: _calculateAndDisplayTotal,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[800],
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _wipCodeController.text.isEmpty
+                              ? 'Enter a WIP Code to see the calculated total'
+                              : 'This amount is calculated from all WIP items linked to this project',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Hidden total amount field for form validation
+                  Visibility(
+                    visible: false,
+                    child: TextFormField(
+                      controller: _totalAmountController,
+                      validator: (value) {
+                        if (_calculatedTotal < 0) {
+                          return 'Total amount cannot be negative';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
 
                   // Buttons

@@ -10,7 +10,7 @@ class ApiService {
   final String wipItemEndPoint = "/wip-items/";
   final String fixedAssetEndPoint = "/fixed-assets/";
 
-  //wip
+  // WIP methods
   Future<List<Wip>> fetchWipData() async {
     try {
       final response = await http.get(Uri.parse(baseUrl + wipEndPoint));
@@ -19,7 +19,6 @@ class ApiService {
         List<dynamic> data = json.decode(response.body);
         print("WIP Data received, count: ${data.length}");
 
-        // Log first item to see structure
         if (data.isNotEmpty) {
           print("First WIP item structure: ${data[0]}");
         }
@@ -29,7 +28,6 @@ class ApiService {
             return Wip.fromJson(item);
           } catch (e) {
             print('Error parsing WIP item: $item, error: $e');
-            // Return a default Wip to prevent crashing
             return Wip(
               id: 0,
               wipCode: 'ERROR',
@@ -82,7 +80,7 @@ class ApiService {
     }
   }
 
-  //wip_item
+  // WIP Item methods
   Future<List<WipItem>> fetchWipItemData() async {
     try {
       final response = await http.get(Uri.parse(baseUrl + wipItemEndPoint));
@@ -91,7 +89,6 @@ class ApiService {
         List<dynamic> data = json.decode(response.body);
         print("WIP Item Data received, count: ${data.length}");
 
-        // Log first item to see structure
         if (data.isNotEmpty) {
           print("First WIP Item structure: ${data[0]}");
         }
@@ -101,7 +98,6 @@ class ApiService {
             return WipItem.fromJson(item);
           } catch (e) {
             print('Error parsing WIP Item: $item, error: $e');
-            // Return a default WipItem to prevent crashing
             return WipItem(
               id: 0,
               itemCode: 'ERROR',
@@ -155,6 +151,117 @@ class ApiService {
     } catch (e) {
       print('Exception in postWipItemData: $e');
       rethrow;
+    }
+  }
+
+  // NEW METHODS FOR AUTO-CALCULATION
+
+  // Calculate total amount for a specific WIP project from its items
+  Future<double> calculateWipTotalAmount(int wipId) async {
+    try {
+      // Fetch all WIP items
+      final response = await http.get(Uri.parse(baseUrl + wipItemEndPoint));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        double total = 0.0;
+
+        // Filter items by wipId and sum totalCost
+        for (var item in data) {
+          try {
+            final wipItem = WipItem.fromJson(item);
+            if (wipItem.wipId == wipId) {
+              total += wipItem.totalCost;
+            }
+          } catch (e) {
+            print('Error parsing item in calculateWipTotalAmount: $e');
+          }
+        }
+
+        print('✅ Calculated total for WIP $wipId: $total');
+        return total;
+      } else {
+        print('Failed to calculate WIP total. Status: ${response.statusCode}');
+        return 0.0;
+      }
+    } catch (e) {
+      print('Exception in calculateWipTotalAmount: $e');
+      return 0.0;
+    }
+  }
+
+  // Update WIP total amount in the database
+  Future<void> updateWipTotalAmount(int wipId, double totalAmount) async {
+    try {
+      // First, get the current WIP data
+      final response = await http.get(Uri.parse('$baseUrl$wipEndPoint$wipId/'));
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> wipData = json.decode(response.body);
+
+        // Update the total amount
+        wipData['total_amount'] = totalAmount;
+
+        // Send PUT request to update
+        final updateResponse = await http.put(
+          Uri.parse('$baseUrl$wipEndPoint$wipId/'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: json.encode(wipData),
+        );
+
+        if (updateResponse.statusCode == 200) {
+          print(
+            '✅ Successfully updated WIP total amount for project $wipId: $totalAmount',
+          );
+        } else {
+          print(
+            '❌ Failed to update WIP total amount. Status: ${updateResponse.statusCode}',
+          );
+        }
+      } else {
+        print(
+          '❌ Failed to fetch WIP data for update. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Exception in updateWipTotalAmount: $e');
+    }
+  }
+
+  // Fetch WIP items for a specific project
+  Future<List<WipItem>> fetchWipItemsByProject(int wipId) async {
+    try {
+      final response = await http.get(Uri.parse(baseUrl + wipItemEndPoint));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+
+        // Filter items by wipId
+        return data
+            .map((item) => WipItem.fromJson(item))
+            .where((item) => item.wipId == wipId)
+            .toList();
+      } else {
+        print(
+          'Failed to fetch WIP items for project $wipId. Status: ${response.statusCode}',
+        );
+        return [];
+      }
+    } catch (e) {
+      print('Exception in fetchWipItemsByProject: $e');
+      return [];
+    }
+  }
+
+  // Combined method: Calculate and update WIP total
+  Future<void> calculateAndUpdateWipTotal(int wipId) async {
+    try {
+      final totalAmount = await calculateWipTotalAmount(wipId);
+      await updateWipTotalAmount(wipId, totalAmount);
+    } catch (e) {
+      print('Exception in calculateAndUpdateWipTotal: $e');
     }
   }
 
