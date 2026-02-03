@@ -167,11 +167,84 @@ class _WIPListScreenState extends State<WIPListScreen> {
     _applyDateFilter();
   }
 
+  //complete WIP project
+  // Complete WIP project using reusable dialog
+  Future<void> _completeWIP(PlutoRow row) async {
+    try {
+      final wipId = row.cells['wip_id']?.value;
+      if (wipId == null) throw Exception('WIP ID not found');
+
+      final wipCode = row.cells['wip_code']?.value as String;
+      final projectName = row.cells['project_name']?.value as String;
+      final totalAmount = row.cells['total_amount']?.value as double? ?? 0.0;
+      final currency = row.cells['currency']?.value as String;
+
+      // Show confirmation dialog
+      final confirmed = await ConfirmationDialog.showWipCompletionDialog(
+        context: context,
+        wipCode: wipCode,
+        projectName: projectName,
+        totalAmount: totalAmount,
+        currency: currency,
+      );
+
+      if (confirmed) {
+        // Show loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const CircularProgressIndicator(color: Colors.white),
+                const SizedBox(width: 12),
+                Text('Completing $wipCode...'),
+              ],
+            ),
+            backgroundColor: Colors.blue[800],
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        // Update WIP status
+        final wip = await ApiService().getWipById(wipId);
+        if (wip != null) {
+          final updatedWip = wip.copyWith(status: 'completed');
+          await ApiService().updateWip(updatedWip);
+
+          // Show success
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ $wipCode completed successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Refresh data
+          await _fetchData();
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   List<PlutoColumn> _buildColumns([double screenWidth = 1024]) {
     final isSmallScreen = screenWidth < 768;
     final isMediumScreen = screenWidth < 1024;
 
     return [
+      PlutoColumn(
+        title: 'ID',
+        readOnly: true,
+        enableEditingMode: false,
+        field: 'wip_id',
+        type: PlutoColumnType.number(),
+        width: 60,
+        hide: true,
+      ),
       PlutoColumn(
         title: 'WIP Code',
         readOnly: true,
@@ -345,26 +418,33 @@ class _WIPListScreenState extends State<WIPListScreen> {
                 const SizedBox(width: 8),
                 // Add Item Button
                 if (project.status.toLowerCase() == "progress")
-                  Tooltip(
-                    message: 'Add WIP Item to this project',
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.add_circle_outline,
-                        size: 18,
-                        color: Colors.green,
-                      ),
-                      onPressed: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                WipItemForm(selectedWipProject: project),
-                          ),
-                        );
-                        // Refresh data after returning
-                        _fetchData();
-                      },
-                    ),
+                  IconButton(
+                    onPressed: () {
+                      _completeWIP(row);
+                    },
+                    icon: Icon(Icons.check, size: 18, color: Colors.green),
+                    tooltip: 'Complete WIP',
                   ),
+                Tooltip(
+                  message: 'Add WIP Item to this project',
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      size: 18,
+                      color: Colors.green,
+                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              WipItemForm(selectedWipProject: project),
+                        ),
+                      );
+                      // Refresh data after returning
+                      _fetchData();
+                    },
+                  ),
+                ),
               ],
             ),
           );
@@ -385,6 +465,7 @@ class _WIPListScreenState extends State<WIPListScreen> {
       return PlutoRow(
         key: ValueKey<int>(project.id),
         cells: {
+          'wip_id': PlutoCell(value: project.id),
           'wip_code': PlutoCell(value: project.wipCode),
           'project_name': PlutoCell(value: project.projectName),
           'project_description': PlutoCell(value: project.description),
@@ -1138,7 +1219,7 @@ class _WIPListScreenState extends State<WIPListScreen> {
   Widget _buildSummaryItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.black)),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1175,5 +1256,127 @@ class _WIPListScreenState extends State<WIPListScreen> {
   String _formatDate(DateTime? date) {
     if (date == null) return '-';
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+}
+
+class ConfirmationDialog {
+  static Future<bool> show({
+    required BuildContext context,
+    required String title,
+    required String message,
+    String confirmText = 'Confirm',
+    String cancelText = 'Cancel',
+    Color confirmColor = Colors.green,
+    Color cancelColor = Colors.grey,
+    IconData? icon,
+    Color? iconColor,
+    Widget? additionalContent,
+    bool showLoading = false,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            if (showLoading) {
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 12),
+                    Text('Processing...'),
+                  ],
+                ),
+                content: const Text('Please wait...'),
+              );
+            }
+
+            return AlertDialog(
+              title: Row(
+                children: [
+                  if (icon != null)
+                    Icon(icon, color: iconColor ?? Colors.orange),
+                  if (icon != null) const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message),
+                  if (additionalContent != null) ...[
+                    const SizedBox(height: 12),
+                    additionalContent,
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  style: TextButton.styleFrom(foregroundColor: cancelColor),
+                  child: Text(cancelText),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: confirmColor,
+                  ),
+                  child: Text(
+                    confirmText,
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            );
+          },
+        ) ??
+        false;
+  }
+
+  // Specific dialog for WIP completion
+  static Future<bool> showWipCompletionDialog({
+    required BuildContext context,
+    required String wipCode,
+    required String projectName,
+    required double totalAmount,
+    required String currency,
+  }) async {
+    return await show(
+      context: context,
+      title: 'Complete WIP Project',
+      message: 'Are you sure you want to complete this WIP project?',
+      icon: Icons.warning,
+      iconColor: Colors.orange,
+      confirmText: 'Complete Project',
+      additionalContent: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            'WIP Code: $wipCode',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Project: $projectName',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            'Total: $currency ${totalAmount.toStringAsFixed(2)}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '⚠️ Note: Once completed, no more items can be added.',
+            style: TextStyle(fontSize: 12, color: Colors.orange),
+          ),
+        ],
+      ),
+    );
   }
 }

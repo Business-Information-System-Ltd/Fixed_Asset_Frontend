@@ -230,6 +230,62 @@ class ApiService {
     }
   }
 
+  Future<Wip> getWipById(int wipId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl$wipEndPoint$wipId/'));
+
+      print('Fetching WIP by ID: $wipId');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Wip.fromJson(data);
+      } else {
+        throw Exception(
+          'Failed to get WIP by ID. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Exception in getWipById: $e');
+      rethrow;
+    }
+  }
+
+  //update wip
+  // Update WIP
+  Future<void> updateWip(Wip wip) async {
+    try {
+      // First, check if WIP exists by trying to fetch it
+      try {
+        await getWipById(wip.id);
+      } catch (e) {
+        throw Exception('WIP with ID ${wip.id} does not exist');
+      }
+
+      // Send PUT request to update
+      final response = await http.put(
+        Uri.parse('$baseUrl$wipEndPoint${wip.id}/'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: json.encode(wip.toJson()),
+      );
+
+      print('Update WIP Response Status: ${response.statusCode}');
+      print('Update WIP Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to update WIP with ID ${wip.id}: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error updating wip ${wip.id}: $e');
+      rethrow;
+    }
+  }
+
   // Fetch WIP items for a specific project
   Future<List<WipItem>> fetchWipItemsByProject(int wipId) async {
     try {

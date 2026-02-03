@@ -136,6 +136,29 @@ class Wip {
     required this.totalAmount,
     required this.currency,
   });
+  Wip copyWith({
+    int? id,
+    String? wipCode,
+    String? projectName,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? description,
+    String? status,
+    double? totalAmount,
+    String? currency,
+  }) {
+    return Wip(
+      id: id ?? this.id,
+      wipCode: wipCode ?? this.wipCode,
+      projectName: projectName ?? this.projectName,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      totalAmount: totalAmount ?? this.totalAmount,
+      currency: currency ?? this.currency,
+    );
+  }
 
   factory Wip.fromJson(Map<String, dynamic> json) {
     // Handle the id conversion properly

@@ -450,6 +450,14 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
 
   List<PlutoColumn> _buildColumns(bool isSmallScreen) {
     return [
+      PlutoColumn(
+        title: 'ID',
+        field: 'id',
+        type: PlutoColumnType.number(),
+        width: 60,
+        enableEditingMode: false,
+        hide: true,
+      ),
       // Column 1: fixed_asset_code
       PlutoColumn(
         title: 'Asset Code',
@@ -683,6 +691,7 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
       return PlutoRow(
         key: ValueKey(asset.id),
         cells: {
+          'id': PlutoCell(value: asset.id),
           // Column 1
           'fixed_asset_code': PlutoCell(value: asset.fixedAssetCode),
           // Column 2
