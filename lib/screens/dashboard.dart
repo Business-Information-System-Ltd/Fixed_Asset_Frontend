@@ -63,37 +63,41 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
+        backgroundColor: Colors.blue[800],
         title: Row(
           children: [
-            const Icon(Icons.inventory_rounded, size: 24),
+            const Icon(Icons.inventory_rounded, size: 24, color: Colors.white),
             const SizedBox(width: 8),
             Text(
               _selectedIndex == 0
                   ? 'Asset Management'
                   : _menuItems[_selectedIndex].title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
         leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, size: 28),
+          icon: const Icon(Icons.menu_rounded, size: 28, color: Colors.white),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search_rounded),
+            icon: const Icon(Icons.search_rounded, color: Colors.white),
             onPressed: () {
               // Search functionality
             },
           ),
           IconButton(
-            icon: const Icon(Icons.notifications_rounded),
+            icon: const Icon(Icons.notifications_rounded, color: Colors.white),
             onPressed: () {
               // Notifications
             },
           ),
           IconButton(
-            icon: const Icon(Icons.help_rounded),
+            icon: const Icon(Icons.help_rounded, color: Colors.white),
             onPressed: () {
               // Help/Support
             },

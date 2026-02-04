@@ -1,6 +1,7 @@
 import 'package:fixed_asset_frontend/api/api_service.dart';
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/screens/date_filter.dart';
+import 'package:fixed_asset_frontend/screens/depreciation_dialog.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/pagination.dart';
 import 'package:fixed_asset_frontend/screens/search_function.dart';
@@ -126,30 +127,46 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
     _applyFilter();
   }
 
+  //depreciation
+  //   void _showDepreciationDialog(FixedAssets asset) {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder: (context) => DepreciationDialog(
+  //       asset: asset,
+  //       onDepreciated: (success) {
+  //         if (success) {
+  //           // Refresh the data
+  //           _fetchData();
+
+  //           ScaffoldMessenger.of(context).showSnackBar(
+  //             SnackBar(
+  //               content: const Text('Depreciation completed successfully'),
+  //               backgroundColor: Colors.green,
+  //               duration: const Duration(seconds: 3),
+  //               behavior: SnackBarBehavior.floating,
+  //               shape: RoundedRectangleBorder(
+  //                 borderRadius: BorderRadius.circular(8),
+  //               ),
+  //             ),
+  //           );
+  //         }
+  //       },
+  //     ),
+  //   ).then((value) {
+  //     if (value == true) {
+  //       // Refresh data if depreciation was successful
+  //       _fetchData();
+  //     }
+  //   });
+  // }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 1024;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fixed Asset Register'),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-        actions: [
-          if (showAssetDetails && selectedAssetId != null)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                setState(() {
-                  showAssetDetails = false;
-                  selectedAssetId = null;
-                });
-              },
-              tooltip: 'Back to List',
-            ),
-        ],
-      ),
       body: Container(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -165,43 +182,46 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
             if (!showAssetDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(
-                        Icons.add,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Add New Fixed Asset',
-                        style: TextStyle(
+                child: Container(
+                  height: 45,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.add,
+                          size: 20,
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FixAssetForm(),
+                        label: const Text(
+                          'Add New Fixed Asset',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[800],
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30,
-                          vertical: 12,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4.0),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FixAssetForm(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[800],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4.0),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -616,11 +636,6 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
           return Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(0.3)),
-              ),
               child: Text(
                 status,
                 style: TextStyle(
@@ -754,8 +769,28 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            if (showAssetDetails && selectedAssetId != null)
+              Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    color: Colors.blue,
+                    iconSize: 30,
+                    onPressed: () {
+                      setState(() {
+                        showAssetDetails = false;
+                        selectedAssetId = null;
+                      });
+                    },
+                    tooltip: 'Back to List',
+                  ),
+                ],
+              ),
+            SizedBox(height: 20),
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

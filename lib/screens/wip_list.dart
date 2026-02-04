@@ -310,11 +310,6 @@ class _WIPListScreenState extends State<WIPListScreen> {
           return Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(0.3)),
-              ),
               child: Text(
                 status,
                 style: TextStyle(
@@ -363,17 +358,9 @@ class _WIPListScreenState extends State<WIPListScreen> {
               project.id > 0 && (project.totalAmount - itemsTotal).abs() > 0.01;
 
           return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Text(
-              //   '$currency ${amount.toStringAsFixed(2)}',
-              //   style: TextStyle(
-              //     fontWeight: FontWeight.bold,
-              //     color: showWarning ? Colors.orange : Colors.blue,
-              //     fontSize: isSmallScreen ? 12 : 14,
-              //   ),
-              // ),
               if (showWarning)
                 Text(
                   '$currency ${itemsTotal.toStringAsFixed(2)}',
@@ -397,7 +384,6 @@ class _WIPListScreenState extends State<WIPListScreen> {
           final row = rendererContext.row;
           final wipCode = row.cells['wip_code']!.value as String;
           final project = wipData.firstWhere((p) => p.wipCode == wipCode);
-
           return Center(
             child: Row(
               children: [
@@ -523,33 +509,33 @@ class _WIPListScreenState extends State<WIPListScreen> {
     final isSmallScreen = screenWidth < 768;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Work In Progress (WIP) Projects'),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-        actions: [
-          if (_isRefreshing)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _fetchData,
-              tooltip: 'Refresh Data',
-            ),
-        ],
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Work In Progress (WIP) Projects'),
+      //   backgroundColor: Colors.blue[800],
+      //   foregroundColor: Colors.white,
+      //   actions: [
+      //     if (_isRefreshing)
+      //       Padding(
+      //         padding: const EdgeInsets.only(right: 16.0),
+      //         child: Center(
+      //           child: SizedBox(
+      //             width: 20,
+      //             height: 20,
+      //             child: CircularProgressIndicator(
+      //               strokeWidth: 2,
+      //               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      //             ),
+      //           ),
+      //         ),
+      //       )
+      //     else
+      //       IconButton(
+      //         icon: const Icon(Icons.refresh),
+      //         onPressed: _fetchData,
+      //         tooltip: 'Refresh Data',
+      //       ),
+      //   ],
+      // ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
@@ -1193,7 +1179,7 @@ class _WIPListScreenState extends State<WIPListScreen> {
                             Text(
                               '${project.currency} ${itemsTotal.toStringAsFixed(2)}',
                               style: TextStyle(
-                                fontSize: isSmallScreen ? 16 : 20,
+                                fontSize: isSmallScreen ? 14 : 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
                               ),
