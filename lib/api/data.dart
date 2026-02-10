@@ -475,3 +475,238 @@ class FixedAssets {
     };
   }
 }
+
+class Depreciation {
+  final int id;
+  final String depreciationDate;
+  final String depreciationMethod;
+  final String computation;
+  final double bookValue;
+  final int accountId;
+  final String depreciationAccount;
+  final String expenseAccount;
+  final String journal;
+  final double deprecicationAmount;
+  final int fixedAssetId;
+  final String fixedAssetCode;
+  Depreciation({
+    required this.id,
+    required this.depreciationDate,
+    required this.depreciationMethod,
+    required this.computation,
+    required this.bookValue,
+    required this.accountId,
+    required this.depreciationAccount,
+    required this.expenseAccount,
+    required this.journal,
+    required this.deprecicationAmount,
+    required this.fixedAssetId,
+    required this.fixedAssetCode,
+  });
+  factory Depreciation.fromJson(Map<String, dynamic> json) {
+    return Depreciation(
+      id: json['depreciation_id'] ?? 0,
+      depreciationDate: json['depreciation_date'] ?? '',
+      depreciationMethod: json['method'] ?? '',
+      computation: json['computation'] ?? '',
+      bookValue: json['book_value'] ?? 0.0,
+      accountId: json['account_id'] ?? 0,
+      depreciationAccount: json['depreciation_account'] ?? '',
+      expenseAccount: json['expense_account'] ?? '',
+
+      journal: json['journal'] ?? '',
+      deprecicationAmount: json['depreciation_amount'] ?? 0.0,
+      fixedAssetId: json['fixed_asset_id'] ?? 0,
+      fixedAssetCode: json['fixed_asset_code'] ?? '',
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'depreciation_id': id,
+      'depreciation_date': depreciationDate,
+      'method': depreciationMethod,
+      'computation': computation,
+      'book_value': bookValue,
+      'account_id': accountId,
+      'depreciation_account': depreciationAccount,
+      'expense_account': expenseAccount,
+      'journal': journal,
+      'depreciation_amount': deprecicationAmount,
+      'fixed_asset_id': fixedAssetId,
+      'fixed_asset_code': fixedAssetCode,
+    };
+  }
+}
+
+class DepreciationEvent {
+  final int eventId;
+  final DateTime depreciationDate;
+  final double depreciationAmount;
+  final double accumulatedDepreciationAmount;
+  final double nbvDepreciaiton;
+  final int policyId;
+  final int assetId;
+  final int depreciationId;
+  DepreciationEvent({
+    required this.eventId,
+    required this.depreciationDate,
+    required this.depreciationAmount,
+    required this.accumulatedDepreciationAmount,
+    required this.nbvDepreciaiton,
+    required this.policyId,
+    required this.assetId,
+    required this.depreciationId,
+  });
+  factory DepreciationEvent.fromJson(Map<String, dynamic> json) {
+    return DepreciationEvent(
+      eventId: json['event_id'] ?? 0,
+      depreciationDate: DateTime.parse(json['depreciation_date']),
+      depreciationAmount: json['depreciation_amount'] ?? 0.0,
+      accumulatedDepreciationAmount: json['accumulated_depreciation'] ?? 0.0,
+      nbvDepreciaiton: json['nbv_depreciation'] ?? 0.0,
+      policyId: json['policy'] ?? 0,
+      assetId: json['asset'] ?? 0,
+      depreciationId: json['depreciation'] ?? 0,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'event_id': eventId,
+      'depreciation_date': DateFormat('yyyy-MM-dd').format(depreciationDate),
+      'depreciation_amount': depreciationAmount,
+      'accumulated_depreciation': accumulatedDepreciationAmount,
+      'nbv_depreciation': nbvDepreciaiton,
+      'policy': policyId,
+      'asset': assetId,
+      'depreciation': depreciationId,
+    };
+  }
+}
+
+class AssetPolicy {
+  final int id;
+  final int usefulLife;
+  final String period;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String depreciationMethod;
+  final double amount;
+  final String status;
+  final String remark;
+  final int assetId;
+  final String assetCode;
+  final int companyId;
+  final int departmentId;
+  final int depreciationId;
+  AssetPolicy({
+    required this.id,
+    required this.usefulLife,
+    required this.period,
+    required this.startDate,
+    required this.endDate,
+    required this.depreciationMethod,
+    required this.amount,
+    required this.status,
+    required this.remark,
+    required this.assetId,
+    required this.assetCode,
+    required this.companyId,
+    required this.departmentId,
+    required this.depreciationId,
+  });
+  factory AssetPolicy.fromJson(Map<String, dynamic> json) {
+    return AssetPolicy(
+      id: json['policy_id'] ?? 0,
+      usefulLife: json['useful_life'] ?? 0,
+      period: json['period'] ?? '',
+      startDate: DateTime.parse(json['start_date'] ?? DateTime.now()),
+      endDate: DateTime.parse(json['end_date'] ?? DateTime.now()),
+      depreciationMethod: json['method'] ?? '',
+      amount: json['amount'] ?? 0.0,
+      status: json['status'] ?? '',
+      remark: json['remark'] ?? '',
+      assetId: json['register'] ?? 0,
+      assetCode: json['fixed_asset_code'] ?? '',
+      companyId: json['company'] ?? 0,
+      departmentId: json['department'] ?? 0,
+      depreciationId: json['depreciation'] ?? 0,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'policy_id': id,
+      'useful_life': usefulLife,
+      'period': period,
+      'start_date': DateFormat('yyyy-MM-dd').format(startDate),
+      'end_date': DateFormat('yyyy-MM-dd').format(endDate),
+      'method': depreciationMethod,
+      'amount': amount,
+      'status': status,
+      'remark': remark,
+      'register': assetId,
+      'fixed_asset_code': assetCode,
+      'company': companyId,
+      'department': departmentId,
+      'depreciation': depreciationId,
+    };
+  }
+}
+
+class Department {
+  final int id;
+  final String departmentCode;
+  final String departmentName;
+  final int companyId;
+
+  Department({
+    required this.id,
+    required this.departmentCode,
+    required this.departmentName,
+    required this.companyId,
+  });
+  factory Department.fromJson(Map<String, dynamic> json) {
+    return Department(
+      id: json['dept_id'] ?? 0,
+      departmentCode: json['dept_code'] ?? '',
+      departmentName: json['dept_name'] ?? '',
+      companyId: json['company'] ?? 0,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'department_code': departmentCode,
+      'department_name': departmentName,
+      'company': companyId,
+    };
+  }
+}
+
+class Company {
+  final int id;
+  final String companyCode;
+  final String companyName;
+  final String branch;
+  Company({
+    required this.id,
+    required this.companyCode,
+    required this.companyName,
+    required this.branch,
+  });
+  factory Company.fromJson(Map<String, dynamic> json) {
+    return Company(
+      id: json['company_id'] ?? 0,
+      companyCode: json['company_code'] ?? '',
+      companyName: json['company_name'] ?? '',
+      branch: json['branch'] ?? '',
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'company_code': companyCode,
+      'company_name': companyName,
+      'branch': branch,
+    };
+  }
+}

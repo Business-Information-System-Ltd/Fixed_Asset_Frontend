@@ -128,38 +128,38 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
   }
 
   //depreciation
-  //   void _showDepreciationDialog(FixedAssets asset) {
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (context) => DepreciationDialog(
-  //       asset: asset,
-  //       onDepreciated: (success) {
-  //         if (success) {
-  //           // Refresh the data
-  //           _fetchData();
+  void _showDepreciationDialog(FixedAssets asset) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => DepreciationDialog(
+        asset: asset,
+        onDepreciated: (success) {
+          if (success) {
+            // Refresh the data
+            _fetchData();
 
-  //           ScaffoldMessenger.of(context).showSnackBar(
-  //             SnackBar(
-  //               content: const Text('Depreciation completed successfully'),
-  //               backgroundColor: Colors.green,
-  //               duration: const Duration(seconds: 3),
-  //               behavior: SnackBarBehavior.floating,
-  //               shape: RoundedRectangleBorder(
-  //                 borderRadius: BorderRadius.circular(8),
-  //               ),
-  //             ),
-  //           );
-  //         }
-  //       },
-  //     ),
-  //   ).then((value) {
-  //     if (value == true) {
-  //       // Refresh data if depreciation was successful
-  //       _fetchData();
-  //     }
-  //   });
-  // }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Depreciation completed successfully'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            );
+          }
+        },
+      ),
+    ).then((value) {
+      if (value == true) {
+        // Refresh data if depreciation was successful
+        _fetchData();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -679,9 +679,7 @@ class _FixedAssetListScreenState extends State<FixedAssetListScreen> {
                 if (asset.assetStatus.toLowerCase() == 'ready to use')
                   ElevatedButton(
                     onPressed: () {
-                      print(
-                        'Depreciation button clicked for ${asset.fixedAssetCode}',
-                      );
+                      _showDepreciationDialog(asset);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 class ApiService {
   static const String baseUrl =
@@ -9,6 +10,11 @@ class ApiService {
   final String wipEndPoint = "/wips/";
   final String wipItemEndPoint = "/wip-items/";
   final String fixedAssetEndPoint = "/fixed-assets/";
+  final String depreciationEndPoint = "/depreciations/";
+  final String depreciationEventEndPoint = "/depreciation-events/";
+  final String assetPolicyEndPoint = "/asset-policies/";
+  final String companyEndPoint = "/companies/";
+  final String departmentEndPoint = "/departments/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -347,6 +353,191 @@ class ApiService {
     print("API Fixed Asset Response body: ${response.body}");
     if (response.statusCode != 201) {
       throw Exception('Failed to post Fixed Asset data');
+    }
+  }
+
+  //depreciation
+  Future<List<Depreciation>> fetchDepreciationData() async {
+    final response = await http.get(Uri.parse(baseUrl + depreciationEndPoint));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("Deprecication Data: $data");
+      return data.map((dynamic item) => Depreciation.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load Depreciation data');
+    }
+  }
+
+  Future<void> postDepreciationData(Depreciation newDepreciation) async {
+    final jsonData = newDepreciation.toJson();
+    print("Sending depreciation Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + depreciationEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Depreciation Response Status: ${response.statusCode}");
+    print("API Depreciation Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Depreciation data');
+    }
+  }
+
+  //depreciationEvent
+  Future<List<DepreciationEvent>> fetchDepreciationEventData() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + depreciationEventEndPoint),
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("Depreciation Event Data: $data");
+      return data
+          .map((dynamic item) => DepreciationEvent.fromJson(item))
+          .toList();
+    } else {
+      throw Exception('Failed to load Depreciation Event data');
+    }
+  }
+
+  Future<void> postDepreciationEventData(
+    DepreciationEvent newDepreciationEvent,
+  ) async {
+    final jsonData = newDepreciationEvent.toJson();
+    print("Sending depreciation event Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + depreciationEventEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Depreciation Event Response Status: ${response.statusCode}");
+    print("API Depreciation Event Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Depreciation Event data');
+    }
+  }
+
+  //depreciation policy
+  Future<List<AssetPolicy>> fetchAssetPolicyData() async {
+    final response = await http.get(Uri.parse(baseUrl + assetPolicyEndPoint));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("Asset Policy Data: $data");
+      return data.map((dynamic item) => AssetPolicy.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load Asset Policy data');
+    }
+  }
+
+  Future<void> postAssetPolicyData(AssetPolicy newAssetPolicy) async {
+    final jsonData = newAssetPolicy.toJson();
+    print("Sending asset policy Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + assetPolicyEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Asset Policy Response Status: ${response.statusCode}");
+    print("API Asset Policy Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Asset Policy data');
+    }
+  }
+
+  // Check depreciation status
+  Future<Map<String, dynamic>> checkDepreciationStatus(int assetId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}fixed-assets/$assetId/depreciation_status/'),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Failed to check depreciation status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error checking depreciation status: $e');
+    }
+  }
+
+  // Calculate depreciation
+  Future<Map<String, dynamic>> calculateDepreciation(
+    int assetId,
+    bool postToJournal,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}depreciation/calculate/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'asset_id': assetId,
+          'post_to_journal': postToJournal,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['error'] ?? 'Failed to calculate depreciation');
+      }
+    } catch (e) {
+      throw Exception('Error calculating depreciation: $e');
+    }
+  }
+
+  // Execute depreciation
+  Future<Map<String, dynamic>> executeDepreciation({
+    required int assetId,
+    bool postToJournal = false,
+    String journalDescription = '',
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}fixed-assets/$assetId/depreciate/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'post_to_journal': postToJournal,
+          'journal_description': journalDescription,
+          'depreciation_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['error'] ?? 'Failed to execute depreciation');
+      }
+    } catch (e) {
+      throw Exception('Error executing depreciation: $e');
+    }
+  }
+
+  // Get depreciation history
+  Future<Map<String, dynamic>> getDepreciationHistory(int assetId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}depreciation/calculate/?asset_id=$assetId'),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Failed to get depreciation history: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error getting depreciation history: $e');
     }
   }
 }
