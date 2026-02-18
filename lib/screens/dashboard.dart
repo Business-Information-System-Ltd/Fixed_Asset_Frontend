@@ -1,3 +1,4 @@
+import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
@@ -5,7 +6,8 @@ import 'package:fixed_asset_frontend/screens/wip_list.dart';
 import 'package:flutter/material.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final LoginResponse userData;
+  const MainScreen({super.key, required this.userData});
 
   @override
   State<MainScreen> createState() => _MainScreenState();

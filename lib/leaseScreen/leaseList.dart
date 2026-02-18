@@ -168,6 +168,61 @@
 //   }
 // }
 
+// // NEW CLASS: Lease Schedule Entry
+// class LeaseScheduleEntry {
+//   final int period;
+//   final double openingLeaseLiability;
+//   final double interest;
+//   final double leasePayment;
+//   final double closingLeaseLiability;
+//   final double openingROUAsset;
+//   final double rOUDepreciation;
+//   final double closingROUAsset;
+//   final double shortTermLease;
+//   final double longTermLease;
+
+//   LeaseScheduleEntry({
+//     required this.period,
+//     required this.openingLeaseLiability,
+//     required this.interest,
+//     required this.leasePayment,
+//     required this.closingLeaseLiability,
+//     required this.openingROUAsset,
+//     required this.rOUDepreciation,
+//     required this.closingROUAsset,
+//     required this.shortTermLease,
+//     required this.longTermLease,
+//   });
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'period': period,
+//       'opening_lease_liability': openingLeaseLiability,
+//       'interest': interest,
+//       'lease_payment': leasePayment,
+//       'closing_lease_liability': closingLeaseLiability,
+//       'opening_rou_asset': openingROUAsset,
+//       'rou_depreciation': rOUDepreciation,
+//       'closing_rou_asset': closingROUAsset,
+//       'short_term_lease': shortTermLease,
+//       'long_term_lease': longTermLease,
+//     };
+//   }
+// }
+
+// // NEW CLASS: Lease Schedule
+// class LeaseSchedule {
+//   final Leases lease;
+//   final List<LeaseScheduleEntry> entries;
+//   final double discountRate;
+
+//   LeaseSchedule({
+//     required this.lease,
+//     required this.entries,
+//     required this.discountRate,
+//   });
+// }
+
 // class Leaselist extends StatefulWidget {
 //   const Leaselist({super.key});
 
@@ -189,6 +244,7 @@
 //   String _searchQuery = '';
 //   int _currentPage = 1;
 //   int _rowsPerPage = 10;
+//   LeaseSchedule? _currentSchedule;
 
 //   @override
 //   void initState() {
@@ -222,7 +278,7 @@
 //         'lease_period': 'year',
 //         'payment_amount': 2000000.0,
 //         'payment_period': 'per year',
-//         'discount_rate': 0.0,
+//         'discount_rate': 12.0,
 //         'computation': 'year',
 //         'changing_date': '2028-04-11',
 //         'changing_amount': 4000000.0,
@@ -281,7 +337,7 @@
 //         'payment_amount': 1000000.0,
 //         'payment_period': 'per year',
 //         'discount_rate': 7.0,
-//         'computation': 'year',
+//         'computation': 'month',
 //         'changing_date': '2027-02-20',
 //         'changing_amount': 3500000.0,
 //         'status': 'Completed',
@@ -338,8 +394,8 @@
 //         'lease_period': 'year',
 //         'payment_amount': 800000.0,
 //         'payment_period': 'per year',
-//         'discount_rate': 8.0,
-//         'computation': 'year',
+//         'discount_rate': 12.0,
+//         'computation': 'month',
 //         'changing_date': '2031-12-01',
 //         'changing_amount': 10000000.0,
 //         'status': 'Cancelled',
@@ -353,6 +409,951 @@
 //       _rows = _buildRows(_filteredLeases);
 //       _updatePagedRows();
 //     });
+//   }
+
+//   // NEW FUNCTION: Generate lease schedule
+//   LeaseSchedule _generateLeaseSchedule(Leases lease) {
+//     final discountRate = lease.discountRate / 100.0;
+//     final leaseTerm = lease.leaseTerm;
+//     final paymentAmount = lease.paymentAmount;
+//     final presentValue = lease.presentValue;
+
+//     // Determine computation type
+//     final isMonthly = lease.computation.toLowerCase().contains('month');
+//     final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+//     final isYearly = lease.computation.toLowerCase().contains('year');
+
+//     int totalPeriods = leaseTerm;
+//     double periodicRate = discountRate;
+//     double periodicPayment = paymentAmount;
+
+//     if (isMonthly) {
+//       totalPeriods = leaseTerm * 12;
+//       periodicRate = discountRate / 12.0;
+//       periodicPayment = paymentAmount / 12.0;
+//     } else if (isQuarterly) {
+//       totalPeriods = leaseTerm * 4;
+//       periodicRate = discountRate / 4.0;
+//       periodicPayment = paymentAmount / 4.0;
+//     }
+
+//     List<LeaseScheduleEntry> entries = [];
+
+//     double openingLeaseLiability = presentValue;
+//     double openingROUAsset = presentValue;
+
+//     // Calculate depreciation based on computation type
+//     double periodicDepreciation;
+//     if (isMonthly) {
+//       periodicDepreciation = presentValue / (leaseTerm * 12);
+//     } else if (isQuarterly) {
+//       periodicDepreciation = presentValue / (leaseTerm * 4);
+//     } else {
+//       periodicDepreciation = presentValue / leaseTerm;
+//     }
+
+//     for (int period = 1; period <= totalPeriods; period++) {
+//       double interest = openingLeaseLiability * periodicRate;
+//       double principalPayment = periodicPayment - interest;
+//       double closingLeaseLiability = openingLeaseLiability - principalPayment;
+
+//       // Handle floating point errors in final period
+//       if (period == totalPeriods) {
+//         closingLeaseLiability = 0.0;
+//         principalPayment = openingLeaseLiability;
+//         interest = periodicPayment - principalPayment;
+//       }
+
+//       double depreciation = periodicDepreciation;
+//       double closingROUAsset = openingROUAsset - depreciation;
+
+//       // Handle floating point errors in final period for ROU Asset
+//       if (period == totalPeriods) {
+//         closingROUAsset = 0.0;
+//         depreciation = openingROUAsset;
+//       }
+
+//       // Calculate short-term vs long-term lease (simplified logic)
+//       double shortTermLease = 0.0;
+//       double longTermLease = 0.0;
+
+//       if (period == 1) {
+//         // For first period, allocate some amount as short-term
+//         // Based on your image: short term lease = lease payment * 0.1
+//         shortTermLease = periodicPayment * 0.1;
+//         longTermLease = closingLeaseLiability - shortTermLease;
+//       } else {
+//         shortTermLease = 0.0;
+//         longTermLease = closingLeaseLiability;
+//       }
+
+//       entries.add(
+//         LeaseScheduleEntry(
+//           period: period,
+//           openingLeaseLiability: double.parse(
+//             openingLeaseLiability.toStringAsFixed(2),
+//           ),
+//           interest: double.parse(interest.toStringAsFixed(2)),
+//           leasePayment: double.parse(periodicPayment.toStringAsFixed(2)),
+//           closingLeaseLiability: double.parse(
+//             closingLeaseLiability.toStringAsFixed(2),
+//           ),
+//           openingROUAsset: double.parse(openingROUAsset.toStringAsFixed(2)),
+//           rOUDepreciation: double.parse(depreciation.toStringAsFixed(2)),
+//           closingROUAsset: double.parse(closingROUAsset.toStringAsFixed(2)),
+//           shortTermLease: double.parse(shortTermLease.toStringAsFixed(2)),
+//           longTermLease: double.parse(longTermLease.toStringAsFixed(2)),
+//         ),
+//       );
+
+//       openingLeaseLiability = closingLeaseLiability;
+//       openingROUAsset = closingROUAsset;
+//     }
+
+//     return LeaseSchedule(
+//       lease: lease,
+//       entries: entries,
+//       discountRate: discountRate,
+//     );
+//   }
+
+//   // NEW FUNCTION: Show lease schedule dialog
+//   void _showLeaseSchedule(Leases lease) {
+//     final schedule = _generateLeaseSchedule(lease);
+
+//     showDialog(
+//       context: context,
+//       barrierDismissible: true,
+//       builder: (BuildContext context) {
+//         return Dialog(
+//           insetPadding: const EdgeInsets.all(10),
+//           child: _buildScheduleDialog(schedule),
+//         );
+//       },
+//     );
+//   }
+
+//   // NEW WIDGET: Build schedule dialog
+//   Widget _buildScheduleDialog(LeaseSchedule schedule) {
+//     final lease = schedule.lease;
+//     final entries = schedule.entries;
+//     final isMonthly = lease.computation.toLowerCase().contains('month');
+//     final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+//     final periodLabel = isMonthly
+//         ? 'Month'
+//         : isQuarterly
+//         ? 'Quarter'
+//         : 'Year';
+
+//     // Column widths for responsive design
+//     final columnWidths = {
+//       'period': 70.0,
+//       'opening_liability': 180.0,
+//       'interest': 130.0,
+//       'lease_payment': 150.0,
+//       'closing_liability': 180.0,
+//       'opening_rou': 180.0,
+//       'depreciation': 130.0,
+//       'closing_rou': 150.0,
+//     };
+
+//     final totalWidth = columnWidths.values.reduce((a, b) => a + b);
+
+//     return Container(
+//       width: MediaQuery.of(context).size.width * 0.95,
+//       constraints: BoxConstraints(
+//         maxWidth: 1200,
+//         maxHeight: MediaQuery.of(context).size.height * 0.9,
+//       ),
+//       padding: const EdgeInsets.all(16),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           // Header
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//             children: [
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Row(
+//                       children: [
+//                         Text(
+//                           'Lease Payment Schedule',
+//                           style: TextStyle(
+//                             fontSize: 22,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.blue[800],
+//                           ),
+//                         ),
+//                         const SizedBox(width: 12),
+//                         Container(
+//                           padding: const EdgeInsets.symmetric(
+//                             horizontal: 12,
+//                             vertical: 4,
+//                           ),
+//                           decoration: BoxDecoration(
+//                             color: Colors.blue[50],
+//                             borderRadius: BorderRadius.circular(20),
+//                             border: Border.all(color: Colors.blue[300]!),
+//                           ),
+//                           child: Text(
+//                             lease.code,
+//                             style: TextStyle(
+//                               fontSize: 14,
+//                               fontWeight: FontWeight.w600,
+//                               color: Colors.blue[800],
+//                             ),
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                     const SizedBox(height: 4),
+//                     Text(
+//                       '${lease.description} • ${lease.leasorName}',
+//                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+//                     ),
+//                     Text(
+//                       'Computation: ${lease.computation} • Discount Rate: ${lease.discountRate}%',
+//                       style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//               IconButton(
+//                 icon: Icon(Icons.close, size: 28, color: Colors.grey[700]),
+//                 onPressed: () => Navigator.of(context).pop(),
+//                 tooltip: 'Close',
+//               ),
+//             ],
+//           ),
+
+//           // Schedule Summary
+//           Center(
+//             child: Card(
+//               margin: const EdgeInsets.symmetric(vertical: 16),
+//               elevation: 2,
+//               shape: RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.circular(10),
+//                 side: BorderSide(color: Colors.grey[200]!),
+//               ),
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16),
+//                 child: Wrap(
+//                   spacing: 16,
+//                   runSpacing: 12,
+//                   alignment: WrapAlignment.spaceEvenly,
+//                   children: [
+//                     _buildScheduleSummaryItem(
+//                       'Lease Term',
+//                       '${lease.leaseTerm} ${lease.leasePeriod}',
+//                       Icons.calendar_today,
+//                       Colors.blue[700]!,
+//                     ),
+//                     _buildScheduleSummaryItem(
+//                       'Payment Amount',
+//                       '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+//                           ? '/month'
+//                           : isQuarterly
+//                           ? '/quarter'
+//                           : '/year'}',
+//                       Icons.payment,
+//                       Colors.green[700]!,
+//                     ),
+//                     _buildScheduleSummaryItem(
+//                       'Discount Rate',
+//                       '${lease.discountRate}%',
+//                       Icons.percent,
+//                       Colors.orange[700]!,
+//                     ),
+//                     _buildScheduleSummaryItem(
+//                       'Total Periods',
+//                       '${entries.length} ${_getPeriodUnit(lease.computation)}',
+//                       Icons.access_time,
+//                       Colors.purple[700]!,
+//                     ),
+//                     _buildScheduleSummaryItem(
+//                       'Present Value',
+//                       '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.presentValue)}',
+//                       Icons.attach_money,
+//                       Colors.teal[700]!,
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           ),
+
+//           // Table Container
+//           Expanded(
+//             child: Container(
+//               decoration: BoxDecoration(
+//                 borderRadius: BorderRadius.circular(8),
+//                 border: Border.all(color: Colors.grey[300]!),
+//               ),
+//               child: Column(
+//                 children: [
+//                   // Table Header - Fixed
+//                   Container(
+//                     height: 60,
+//                     decoration: BoxDecoration(
+//                       color: Colors.blue[50],
+//                       borderRadius: const BorderRadius.only(
+//                         topLeft: Radius.circular(8),
+//                         topRight: Radius.circular(8),
+//                       ),
+//                       border: Border(
+//                         bottom: BorderSide(color: Colors.grey[300]!),
+//                       ),
+//                     ),
+//                     child: SingleChildScrollView(
+//                       scrollDirection: Axis.horizontal,
+//                       child: SizedBox(
+//                         width: totalWidth,
+//                         child: Row(
+//                           children: [
+//                             // Period
+//                             Container(
+//                               width: columnWidths['period'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   periodLabel,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Opening Lease Liability
+//                             Container(
+//                               width: columnWidths['opening_liability'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Opening Lease\nLiability',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Interest
+//                             Container(
+//                               width: columnWidths['interest'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Interest\n(${lease.discountRate}%)',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Lease Payment
+//                             Container(
+//                               width: columnWidths['lease_payment'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Lease\nPayment',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Closing Lease Liability
+//                             Container(
+//                               width: columnWidths['closing_liability'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Closing Lease\nLiability',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Opening ROU Asset
+//                             Container(
+//                               width: columnWidths['opening_rou'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Opening\nROU Asset',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // ROU Depreciation
+//                             Container(
+//                               width: columnWidths['depreciation'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: BoxDecoration(
+//                                 border: Border(
+//                                   right: BorderSide(color: Colors.grey[300]!),
+//                                 ),
+//                               ),
+//                               child: Center(
+//                                 child: Text(
+//                                   'ROU\nDepreciation',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                             // Closing ROU Asset
+//                             Container(
+//                               width: columnWidths['closing_rou'],
+//                               padding: const EdgeInsets.symmetric(
+//                                 horizontal: 8,
+//                                 vertical: 12,
+//                               ),
+//                               decoration: const BoxDecoration(),
+//                               child: Center(
+//                                 child: Text(
+//                                   'Closing\nROU Asset',
+//                                   textAlign: TextAlign.center,
+//                                   style: TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     color: Colors.blue[900],
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+
+//                   // Table Body - Scrollable with fixed height
+//                   Expanded(
+//                     child: SingleChildScrollView(
+//                       scrollDirection: Axis.vertical,
+//                       child: SingleChildScrollView(
+//                         scrollDirection: Axis.horizontal,
+//                         child: SizedBox(
+//                           width: totalWidth,
+//                           child: ListView.builder(
+//                             shrinkWrap: true,
+//                             physics: const NeverScrollableScrollPhysics(),
+//                             itemCount: entries.length,
+//                             itemBuilder: (context, index) {
+//                               final entry = entries[index];
+//                               final isEven = index % 2 == 0;
+
+//                               return Container(
+//                                 height: 50,
+//                                 decoration: BoxDecoration(
+//                                   color: isEven
+//                                       ? Colors.grey[50]
+//                                       : Colors.white,
+//                                   border: Border(
+//                                     bottom: BorderSide(
+//                                       color: Colors.grey[200]!,
+//                                     ),
+//                                   ),
+//                                 ),
+//                                 child: Row(
+//                                   children: [
+//                                     // Period
+//                                     Container(
+//                                       width: columnWidths['period'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           entry.period.toString(),
+//                                           style: const TextStyle(
+//                                             fontWeight: FontWeight.w600,
+//                                             fontSize: 13,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Opening Lease Liability
+//                                     Container(
+//                                       width: columnWidths['opening_liability'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.openingLeaseLiability),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.blue[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Interest
+//                                     Container(
+//                                       width: columnWidths['interest'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.interest),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.orange[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Lease Payment
+//                                     Container(
+//                                       width: columnWidths['lease_payment'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.leasePayment),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.green[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Closing Lease Liability
+//                                     Container(
+//                                       width: columnWidths['closing_liability'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.closingLeaseLiability),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.purple[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Opening ROU Asset
+//                                     Container(
+//                                       width: columnWidths['opening_rou'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.openingROUAsset),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.teal[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // ROU Depreciation
+//                                     Container(
+//                                       width: columnWidths['depreciation'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         border: Border(
+//                                           right: BorderSide(
+//                                             color: Colors.grey[300]!,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.rOUDepreciation),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.red[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                     // Closing ROU Asset
+//                                     Container(
+//                                       width: columnWidths['closing_rou'],
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                       ),
+//                                       child: Center(
+//                                         child: Text(
+//                                           NumberFormat(
+//                                             '#,##0.00',
+//                                           ).format(entry.closingROUAsset),
+//                                           style: TextStyle(
+//                                             fontWeight: FontWeight.w500,
+//                                             fontSize: 13,
+//                                             color: Colors.brown[700],
+//                                           ),
+//                                         ),
+//                                       ),
+//                                     ),
+//                                   ],
+//                                 ),
+//                               );
+//                             },
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ),
+
+//           // Summary for First Entry
+//           if (entries.isNotEmpty)
+//             Card(
+//               margin: const EdgeInsets.only(top: 20),
+//               color: Colors.green[50],
+//               elevation: 2,
+//               shape: RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.circular(10),
+//                 side: BorderSide(color: Colors.green[200]!),
+//               ),
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16),
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Text(
+//                       'For ${periodLabel} 1 Entry',
+//                       style: TextStyle(
+//                         fontWeight: FontWeight.bold,
+//                         color: Colors.green[900],
+//                         fontSize: 16,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 12),
+//                     Row(
+//                       children: [
+//                         Expanded(
+//                           child: Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             children: [
+//                               Text(
+//                                 'Short Term Lease:',
+//                                 style: TextStyle(
+//                                   color: Colors.green[800],
+//                                   fontWeight: FontWeight.w500,
+//                                   fontSize: 14,
+//                                 ),
+//                               ),
+//                               const SizedBox(height: 4),
+//                               Text(
+//                                 '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entries[0].shortTermLease)}',
+//                                 style: TextStyle(
+//                                   color: Colors.green[900],
+//                                   fontWeight: FontWeight.bold,
+//                                   fontSize: 18,
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                         Container(
+//                           width: 1,
+//                           height: 40,
+//                           color: Colors.green[300],
+//                         ),
+//                         const SizedBox(width: 20),
+//                         Expanded(
+//                           child: Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             children: [
+//                               Text(
+//                                 'Long Term Lease:',
+//                                 style: TextStyle(
+//                                   color: Colors.green[800],
+//                                   fontWeight: FontWeight.w500,
+//                                   fontSize: 14,
+//                                 ),
+//                               ),
+//                               const SizedBox(height: 4),
+//                               Text(
+//                                 '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entries[0].longTermLease)}',
+//                                 style: TextStyle(
+//                                   color: Colors.green[900],
+//                                   fontWeight: FontWeight.bold,
+//                                   fontSize: 18,
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+
+//           // Action Buttons
+//           const SizedBox(height: 20),
+//           Row(
+//             mainAxisAlignment: MainAxisAlignment.end,
+//             children: [
+//               ElevatedButton.icon(
+//                 icon: Icon(Icons.print, size: 20, color: Colors.white),
+//                 label: Text('Print', style: TextStyle(color: Colors.white)),
+//                 onPressed: () {
+//                   ScaffoldMessenger.of(context).showSnackBar(
+//                     const SnackBar(
+//                       content: Text('Print functionality will be implemented'),
+//                       backgroundColor: Colors.blue,
+//                     ),
+//                   );
+//                 },
+//                 style: ElevatedButton.styleFrom(
+//                   backgroundColor: Colors.blue[700],
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 24,
+//                     vertical: 12,
+//                   ),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(6),
+//                   ),
+//                   elevation: 2,
+//                 ),
+//               ),
+//               const SizedBox(width: 12),
+//               ElevatedButton.icon(
+//                 icon: Icon(Icons.download, size: 20, color: Colors.white),
+//                 label: Text(
+//                   'Export to Excel',
+//                   style: TextStyle(color: Colors.white),
+//                 ),
+//                 onPressed: () {
+//                   ScaffoldMessenger.of(context).showSnackBar(
+//                     const SnackBar(
+//                       content: Text('Export functionality will be implemented'),
+//                       backgroundColor: Colors.green,
+//                     ),
+//                   );
+//                 },
+//                 style: ElevatedButton.styleFrom(
+//                   backgroundColor: Colors.green[600],
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 24,
+//                     vertical: 12,
+//                   ),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(6),
+//                   ),
+//                   elevation: 2,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   // NEW WIDGET: Build schedule summary item
+//   Widget _buildScheduleSummaryItem(
+//     String label,
+//     String value,
+//     IconData icon,
+//     Color color,
+//   ) {
+//     return Container(
+//       constraints: BoxConstraints(minWidth: 140),
+//       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+//       decoration: BoxDecoration(
+//         color: color.withOpacity(0.1),
+//         borderRadius: BorderRadius.circular(8),
+//         border: Border.all(color: color.withOpacity(0.3)),
+//       ),
+//       child: Column(
+//         mainAxisSize: MainAxisSize.min,
+//         children: [
+//           Row(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               Icon(icon, size: 18, color: color),
+//               const SizedBox(width: 6),
+//               Text(
+//                 label,
+//                 style: TextStyle(
+//                   fontSize: 12,
+//                   fontWeight: FontWeight.w600,
+//                   color: color,
+//                 ),
+//               ),
+//             ],
+//           ),
+//           const SizedBox(height: 6),
+//           Text(
+//             value,
+//             textAlign: TextAlign.center,
+//             style: TextStyle(
+//               fontSize: 13,
+//               fontWeight: FontWeight.bold,
+//               color: color,
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   String _getPeriodUnit(String computation) {
+//     final comp = computation.toLowerCase();
+//     if (comp.contains('month')) {
+//       return 'months';
+//     } else if (comp.contains('year')) {
+//       return 'years';
+//     } else {
+//       return 'periods';
+//     }
 //   }
 
 //   void _applyFilter() {
@@ -432,7 +1433,6 @@
 
 //   List<PlutoColumn> _buildColumns([double screenWidth = 1024]) {
 //     final isSmallScreen = screenWidth < 768;
-//     final isMediumScreen = screenWidth < 1024;
 
 //     return [
 //       PlutoColumn(
@@ -500,15 +1500,6 @@
 //         PlutoColumn(
 //           title: 'Lease Term',
 //           field: 'lease_term',
-//           readOnly: true,
-//           enableEditingMode: false,
-//           type: PlutoColumnType.text(),
-//           width: isSmallScreen ? 80 : 100,
-//         ),
-//       if (!isSmallScreen)
-//         PlutoColumn(
-//           title: 'Lease Period',
-//           field: 'lease_period',
 //           readOnly: true,
 //           enableEditingMode: false,
 //           type: PlutoColumnType.text(),
@@ -586,21 +1577,50 @@
 //         field: 'actions',
 //         enableEditingMode: false,
 //         type: PlutoColumnType.text(),
-//         width: isSmallScreen ? 80 : 100,
+//         width: isSmallScreen ? 120 : 150,
 //         renderer: (rendererContext) {
 //           final row = rendererContext.row;
 //           final leaseCode = row.cells['code']!.value as String;
 //           final lease = leasesData.firstWhere((l) => l.code == leaseCode);
 
-//           return Center(
-//             child: IconButton(
-//               icon: const Icon(Icons.visibility, size: 18),
-//               onPressed: () {
-//                 _showLeaseDetails(lease.id);
-//               },
-//               tooltip: 'View Details',
-//               color: Colors.blue,
-//             ),
+//           return Row(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               // View Details Button
+//               Container(
+//                 child: IconButton(
+//                   icon: Icon(
+//                     Icons.visibility,
+//                     size: 18,
+//                     color: Colors.blue[700],
+//                   ),
+//                   onPressed: () {
+//                     _showLeaseDetails(lease.id);
+//                   },
+//                   tooltip: 'View Details',
+//                   padding: const EdgeInsets.all(6),
+//                   constraints: const BoxConstraints(),
+//                 ),
+//               ),
+//               const SizedBox(width: 6),
+
+//               // View Schedule Button - NEW
+//               Container(
+//                 child: IconButton(
+//                   icon: Icon(
+//                     Icons.schedule,
+//                     size: 18,
+//                     color: Colors.purple[700],
+//                   ),
+//                   onPressed: () {
+//                     _showLeaseSchedule(lease);
+//                   },
+//                   tooltip: 'View Payment Schedule',
+//                   padding: const EdgeInsets.all(6),
+//                   constraints: const BoxConstraints(),
+//                 ),
+//               ),
+//             ],
 //           );
 //         },
 //       ),
@@ -643,7 +1663,6 @@
 //           'lease_term': PlutoCell(
 //             value: '${lease.leaseTerm} ${lease.leasePeriod}',
 //           ),
-//           'lease_period': PlutoCell(value: lease.leasePeriod),
 //           'contract_amount': PlutoCell(value: lease.contractAmount),
 //           'status': PlutoCell(value: lease.status),
 //           'actions': PlutoCell(value: ''),
@@ -711,8 +1730,9 @@
 //                             vertical: 12,
 //                           ),
 //                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(4.0),
+//                             borderRadius: BorderRadius.circular(6),
 //                           ),
+//                           elevation: 2,
 //                         ),
 //                       ),
 //                     ],
@@ -738,6 +1758,8 @@
 //                         label: Text(
 //                           'Filter: ${_currentFilterType!.replaceAll('_', ' ')}',
 //                         ),
+//                         backgroundColor: Colors.blue[50],
+//                         deleteIconColor: Colors.blue[700],
 //                         onDeleted: () {
 //                           setState(() {
 //                             _currentDateRange = null;
@@ -771,7 +1793,20 @@
 //                 children: [
 //                   // Lease List Table
 //                   if (!showLeaseDetails)
-//                     Expanded(flex: 2, child: _buildLeaseTable(isSmallScreen)),
+//                     Expanded(
+//                       flex: 2,
+//                       child: Column(
+//                         children: [
+//                           // Table with fixed height
+//                           Expanded(child: _buildLeaseTable()),
+//                           // Pagination - ALWAYS VISIBLE (with null check)
+//                           Container(
+//                             margin: const EdgeInsets.only(top: 10),
+//                             child: _buildPagination(),
+//                           ),
+//                         ],
+//                       ),
+//                     ),
 
 //                   // Lease Details Panel
 //                   if (showLeaseDetails && selectedLeaseId != null)
@@ -793,6 +1828,12 @@
 //     final completedLeases = _filteredLeases
 //         .where((l) => l.status.toLowerCase() == 'completed')
 //         .length;
+//     final amendmentLeases = _filteredLeases
+//         .where((l) => l.status.toLowerCase() == 'amendment')
+//         .length;
+//     final cancelLeases = _filteredLeases
+//         .where((l) => l.status.toLowerCase() == 'cancelled')
+//         .length;
 //     final totalContractValue = _filteredLeases.fold(
 //       0.0,
 //       (sum, lease) => sum + lease.contractAmount,
@@ -808,7 +1849,7 @@
 //             'Total Leases',
 //             totalLeases.toString(),
 //             Icons.assignment,
-//             Colors.blue,
+//             Colors.blue[700]!,
 //           ),
 //         ),
 //         const SizedBox(width: 12),
@@ -817,7 +1858,7 @@
 //             'Active Leases',
 //             activeLeases.toString(),
 //             Icons.check_circle,
-//             Colors.green,
+//             Colors.green[700]!,
 //           ),
 //         ),
 //         const SizedBox(width: 12),
@@ -826,16 +1867,25 @@
 //             'Completed',
 //             completedLeases.toString(),
 //             Icons.done_all,
-//             Colors.blue,
+//             Colors.blue[700]!,
 //           ),
 //         ),
 //         const SizedBox(width: 12),
 //         Expanded(
 //           child: _buildStatCard(
-//             'Avg Contract',
-//             '${_getCurrencySymbol(_filteredLeases.isNotEmpty ? _filteredLeases.first.currency : 'MMK')} ${avgContractValue.toStringAsFixed(0)}',
-//             Icons.attach_money,
-//             Colors.orange,
+//             'Amendment',
+//             amendmentLeases.toString(),
+//             Icons.change_circle,
+//             Colors.orange[700]!,
+//           ),
+//         ),
+//         const SizedBox(width: 12),
+//         Expanded(
+//           child: _buildStatCard(
+//             'Cancelled',
+//             amendmentLeases.toString(),
+//             Icons.cancel,
+//             Colors.grey[700]!,
 //           ),
 //         ),
 //       ],
@@ -850,9 +1900,9 @@
 //   ) {
 //     return Card(
 //       elevation: 3,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
 //       child: Padding(
-//         padding: const EdgeInsets.all(7),
+//         padding: const EdgeInsets.all(12),
 //         child: Row(
 //           children: [
 //             Container(
@@ -871,12 +1921,17 @@
 //                 children: [
 //                   Text(
 //                     title,
-//                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+//                     style: TextStyle(
+//                       fontSize: 12,
+//                       color: Colors.grey[600],
+//                       fontWeight: FontWeight.w500,
+//                     ),
 //                   ),
+//                   const SizedBox(height: 2),
 //                   Text(
 //                     value,
 //                     style: TextStyle(
-//                       fontSize: 20,
+//                       fontSize: 18,
 //                       fontWeight: FontWeight.bold,
 //                       color: color,
 //                     ),
@@ -890,53 +1945,68 @@
 //     );
 //   }
 
-//   Widget _buildLeaseTable(bool isSmallScreen) {
-//     return Column(
-//       children: [
-//         Expanded(
-//           child: Card(
-//             elevation: 4,
-//             shape: RoundedRectangleBorder(
-//               borderRadius: BorderRadius.circular(12),
+//   Widget _buildLeaseTable() {
+//     return Card(
+//       elevation: 4,
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+//       child: Padding(
+//         padding: const EdgeInsets.all(8),
+//         child: PlutoGrid(
+//           columns: _columns,
+//           rows: _pagedRows,
+//           onLoaded: (PlutoGridOnLoadedEvent event) {
+//             _stateManager = event.stateManager;
+//           },
+//           configuration: PlutoGridConfiguration(
+//             columnFilter: const PlutoGridColumnFilterConfig(
+//               filters: FilterHelper.defaultFilters,
 //             ),
-//             child: Padding(
-//               padding: const EdgeInsets.all(8),
-//               child: PlutoGrid(
-//                 columns: _columns,
-//                 rows: _pagedRows,
-//                 onLoaded: (PlutoGridOnLoadedEvent event) {
-//                   _stateManager = event.stateManager;
-//                 },
-//                 configuration: PlutoGridConfiguration(
-//                   columnFilter: const PlutoGridColumnFilterConfig(
-//                     filters: FilterHelper.defaultFilters,
-//                   ),
-//                   style: PlutoGridStyleConfig(
-//                     enableColumnBorderVertical: true,
-//                     gridBorderRadius: BorderRadius.circular(8),
-//                     oddRowColor: Colors.blue[50],
-//                     rowHeight: 35,
-//                   ),
-//                 ),
-//               ),
+//             style: PlutoGridStyleConfig(
+//               enableColumnBorderVertical: true,
+//               gridBorderRadius: BorderRadius.circular(8),
+//               oddRowColor: Colors.blue[50],
+//               rowHeight: 35,
 //             ),
 //           ),
 //         ),
-//         const SizedBox(height: 10),
-//         if (_stateManager != null)
-//           PlutoGridPagination(
-//             stateManager: _stateManager!,
-//             totalRows: _rows.length,
-//             rowsPerPage: _rowsPerPage,
-//             onPageChanged: (page, limit) {
-//               setState(() {
-//                 _currentPage = page;
-//                 _rowsPerPage = limit;
-//               });
-//               _updatePagedRows();
-//             },
-//           ),
-//       ],
+//       ),
+//     );
+//   }
+
+//   // FIXED: Added null check for _stateManager
+//   Widget _buildPagination() {
+//     if (_stateManager == null) {
+//       return Container(
+//         padding: const EdgeInsets.all(12),
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(8),
+//         ),
+//         child: const Text(
+//           'Loading pagination...',
+//           style: TextStyle(color: Colors.grey),
+//         ),
+//       );
+//     }
+
+//     return Card(
+//       elevation: 3,
+//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+//       child: Padding(
+//         padding: const EdgeInsets.all(8),
+//         child: PlutoGridPagination(
+//           stateManager: _stateManager!,
+//           totalRows: _rows.length,
+//           rowsPerPage: _rowsPerPage,
+//           onPageChanged: (page, limit) {
+//             setState(() {
+//               _currentPage = page;
+//               _rowsPerPage = limit;
+//             });
+//             _updatePagedRows();
+//           },
+//         ),
+//       ),
 //     );
 //   }
 
@@ -956,7 +2026,7 @@
 //             // Close button
 //             IconButton(
 //               icon: const Icon(Icons.close),
-//               color: Colors.blue,
+//               color: Colors.blue[700],
 //               iconSize: 30,
 //               onPressed: () {
 //                 setState(() {
@@ -977,19 +2047,16 @@
 //                     children: [
 //                       Text(
 //                         lease.code,
-//                         style: const TextStyle(
+//                         style: TextStyle(
 //                           fontSize: 20,
 //                           fontWeight: FontWeight.bold,
-//                           color: Colors.blue,
+//                           color: Colors.blue[800],
 //                         ),
 //                       ),
 //                       const SizedBox(height: 4),
 //                       Text(
 //                         lease.description,
-//                         style: TextStyle(
-//                           fontSize: 16,
-//                           color: Colors.grey.shade700,
-//                         ),
+//                         style: TextStyle(fontSize: 16, color: Colors.grey[700]),
 //                       ),
 //                     ],
 //                   ),
@@ -1141,6 +2208,57 @@
 //                       ),
 //                     ]),
 
+//                     // View Schedule Button
+//                     const SizedBox(height: 20),
+//                     _buildDetailSection('Actions', [
+//                       Container(
+//                         padding: const EdgeInsets.all(12),
+//                         decoration: BoxDecoration(
+//                           color: Colors.purple[50],
+//                           borderRadius: BorderRadius.circular(8),
+//                           border: Border.all(color: Colors.purple[200]!),
+//                         ),
+//                         child: Row(
+//                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                           children: [
+//                             Text(
+//                               'View Payment Schedule:',
+//                               style: TextStyle(
+//                                 fontWeight: FontWeight.bold,
+//                                 fontSize: 14,
+//                                 color: Colors.purple[800],
+//                               ),
+//                             ),
+//                             ElevatedButton.icon(
+//                               icon: Icon(
+//                                 Icons.schedule,
+//                                 size: 18,
+//                                 color: Colors.white,
+//                               ),
+//                               label: const Text(
+//                                 'Open Schedule',
+//                                 style: TextStyle(color: Colors.white),
+//                               ),
+//                               onPressed: () {
+//                                 _showLeaseSchedule(lease);
+//                               },
+//                               style: ElevatedButton.styleFrom(
+//                                 backgroundColor: Colors.purple[700],
+//                                 padding: const EdgeInsets.symmetric(
+//                                   horizontal: 16,
+//                                   vertical: 8,
+//                                 ),
+//                                 shape: RoundedRectangleBorder(
+//                                   borderRadius: BorderRadius.circular(6),
+//                                 ),
+//                                 elevation: 1,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+//                     ]),
+
 //                     // Summary
 //                     const SizedBox(height: 20),
 //                     _buildDetailSection('Summary', [
@@ -1149,7 +2267,7 @@
 //                         decoration: BoxDecoration(
 //                           color: Colors.green[50],
 //                           borderRadius: BorderRadius.circular(8),
-//                           border: Border.all(color: Colors.green.shade200),
+//                           border: Border.all(color: Colors.green[200]!),
 //                         ),
 //                         child: Row(
 //                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1163,10 +2281,10 @@
 //                               ),
 //                             ),
 //                             Text(
-//                               '${_getCurrencySymbol(lease.currency)} ${lease.contractAmount.toStringAsFixed(2)}',
+//                               '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.contractAmount)}',
 //                               style: TextStyle(
 //                                 fontWeight: FontWeight.bold,
-//                                 color: Colors.green,
+//                                 color: Colors.green[800],
 //                                 fontSize: 16,
 //                               ),
 //                             ),
@@ -1189,12 +2307,19 @@
 //                     selectedLeaseId = null;
 //                   });
 //                 },
-//                 icon: const Icon(Icons.close, size: 16),
-//                 label: const Text('Close Details'),
+//                 icon: Icon(Icons.close, size: 16, color: Colors.grey[700]),
+//                 label: Text(
+//                   'Close Details',
+//                   style: TextStyle(color: Colors.grey[700]),
+//                 ),
 //                 style: OutlinedButton.styleFrom(
 //                   padding: const EdgeInsets.symmetric(
 //                     horizontal: 24,
 //                     vertical: 12,
+//                   ),
+//                   side: BorderSide(color: Colors.grey[400]!),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(6),
 //                   ),
 //                 ),
 //               ),
@@ -1211,10 +2336,10 @@
 //       children: [
 //         Text(
 //           title,
-//           style: const TextStyle(
+//           style: TextStyle(
 //             fontSize: 16,
 //             fontWeight: FontWeight.bold,
-//             color: Colors.blue,
+//             color: Colors.blue[800],
 //           ),
 //         ),
 //         const SizedBox(height: 8),
@@ -1242,7 +2367,7 @@
 //               '$label:',
 //               style: TextStyle(
 //                 fontWeight: FontWeight.w500,
-//                 color: Colors.grey.shade700,
+//                 color: Colors.grey[700],
 //               ),
 //             ),
 //           ),
@@ -1275,7 +2400,7 @@
 //               '$label:',
 //               style: TextStyle(
 //                 fontWeight: FontWeight.w500,
-//                 color: Colors.grey.shade700,
+//                 color: Colors.grey[700],
 //               ),
 //             ),
 //           ),
@@ -1283,7 +2408,7 @@
 //           Expanded(
 //             flex: 3,
 //             child: Text(
-//               '${_getCurrencySymbol(currency)} ${amount.toStringAsFixed(2)}',
+//               '${_getCurrencySymbol(currency)} ${NumberFormat('#,##0.00').format(amount)}',
 //               style: const TextStyle(fontWeight: FontWeight.bold),
 //             ),
 //           ),
@@ -1295,15 +2420,15 @@
 //   Color _getStatusColor(String status) {
 //     switch (status.toLowerCase()) {
 //       case 'active':
-//         return Colors.green;
+//         return Colors.green[700]!;
 //       case 'completed':
-//         return Colors.blue;
+//         return Colors.blue[700]!;
 //       case 'amendment':
-//         return Colors.orange;
+//         return Colors.orange[700]!;
 //       case 'cancelled':
-//         return Colors.red;
+//         return Colors.red[700]!;
 //       default:
-//         return Colors.grey;
+//         return Colors.grey[700]!;
 //     }
 //   }
 
@@ -1320,6 +2445,8 @@
 // }
 
 // import 'package:fixed_asset_frontend/api/api_service.dart';
+import 'dart:math';
+
 import 'package:fixed_asset_frontend/screens/date_filter.dart';
 import 'package:fixed_asset_frontend/screens/pagination.dart';
 import 'package:fixed_asset_frontend/screens/search_function.dart';
@@ -1529,6 +2656,21 @@ class LeaseScheduleEntry {
       'long_term_lease': longTermLease,
     };
   }
+}
+
+// NEW CLASS: Present Value Entry
+class PresentValueEntry {
+  final int period;
+  final double payment;
+  final double discountFactor;
+  final double presentValue;
+
+  PresentValueEntry({
+    required this.period,
+    required this.payment,
+    required this.discountFactor,
+    required this.presentValue,
+  });
 }
 
 // NEW CLASS: Lease Schedule
@@ -1800,7 +2942,6 @@ class _LeaselistState extends State<Leaselist> {
 
       if (period == 1) {
         // For first period, allocate some amount as short-term
-        // Based on your image: short term lease = lease payment * 0.1
         shortTermLease = periodicPayment * 0.1;
         longTermLease = closingLeaseLiability - shortTermLease;
       } else {
@@ -1835,6 +2976,489 @@ class _LeaselistState extends State<Leaselist> {
       lease: lease,
       entries: entries,
       discountRate: discountRate,
+    );
+  }
+
+  // NEW FUNCTION: Generate Present Value calculation
+  List<PresentValueEntry> _generatePresentValue(Leases lease) {
+    final discountRate = lease.discountRate / 100.0;
+    final leaseTerm = lease.leaseTerm;
+    final paymentAmount = lease.paymentAmount;
+
+    // Determine computation type
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+
+    int totalPeriods = leaseTerm;
+    double periodicRate = discountRate;
+    double periodicPayment = paymentAmount;
+
+    if (isMonthly) {
+      totalPeriods = leaseTerm * 12;
+      periodicRate = discountRate / 12.0;
+      periodicPayment = paymentAmount / 12.0;
+    } else if (isQuarterly) {
+      totalPeriods = leaseTerm * 4;
+      periodicRate = discountRate / 4.0;
+      periodicPayment = paymentAmount / 4.0;
+    }
+
+    List<PresentValueEntry> entries = [];
+
+    for (int period = 1; period <= totalPeriods; period++) {
+      // Calculate discount factor: 1 / (1 + r)^n
+      double discountFactor = 1 / pow(1 + periodicRate, period);
+      double presentValue = periodicPayment * discountFactor;
+
+      entries.add(
+        PresentValueEntry(
+          period: period,
+          payment: periodicPayment,
+          discountFactor: double.parse(discountFactor.toStringAsFixed(6)),
+          presentValue: double.parse(presentValue.toStringAsFixed(2)),
+        ),
+      );
+    }
+
+    return entries;
+  }
+
+  // NEW FUNCTION: Show Present Value dialog
+  void _showPresentValueDialog(Leases lease) {
+    final pvEntries = _generatePresentValue(lease);
+    final totalPV = pvEntries.fold(
+      0.0,
+      (sum, entry) => sum + entry.presentValue,
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(10),
+          child: _buildPresentValueDialog(lease, pvEntries, totalPV),
+        );
+      },
+    );
+  }
+
+  // NEW WIDGET: Build Present Value dialog
+  Widget _buildPresentValueDialog(
+    Leases lease,
+    List<PresentValueEntry> entries,
+    double totalPV,
+  ) {
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+    final periodLabel = isMonthly
+        ? 'Month'
+        : isQuarterly
+        ? 'Quarter'
+        : 'Year';
+
+    // Column widths for responsive design
+    final columnWidths = {
+      'period': 100.0,
+      'payment': 200.0,
+      'discount_factor': 200.0,
+      'present_value': 200.0,
+    };
+
+    final totalWidth = columnWidths.values.reduce((a, b) => a + b);
+
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.6,
+      constraints: BoxConstraints(
+        maxWidth: 800,
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Present Value Calculation',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blue[300]!),
+                          ),
+                          child: Text(
+                            lease.code,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${lease.description} • ${lease.leasorName}',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      'Computation: ${lease.computation} • Discount Rate: ${lease.discountRate}%',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.close, size: 28, color: Colors.grey[700]),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Table Container
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  // Table Header
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        topRight: Radius.circular(8),
+                      ),
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: totalWidth,
+                      child: Row(
+                        children: [
+                          // Period
+                          Container(
+                            width: columnWidths['period'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                periodLabel,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Payment
+                          Container(
+                            width: columnWidths['payment'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Payment',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Discount Factor
+                          Container(
+                            width: columnWidths['discount_factor'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Discount Factor',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Present Value
+                          Container(
+                            width: columnWidths['present_value'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Center(
+                              child: Text(
+                                'Present Value',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Table Body
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: SizedBox(
+                        width: totalWidth,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            final isEven = index % 2 == 0;
+
+                            return Container(
+                              height: 45,
+                              decoration: BoxDecoration(
+                                color: isEven ? Colors.grey[50] : Colors.white,
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Period
+                                  Container(
+                                    width: columnWidths['period'],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        right: BorderSide(
+                                          color: Colors.grey[300]!,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        entry.period.toString(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Payment
+                                  Container(
+                                    width: columnWidths['payment'],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        right: BorderSide(
+                                          color: Colors.grey[300]!,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entry.payment)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                          color: Colors.green[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Discount Factor
+                                  Container(
+                                    width: columnWidths['discount_factor'],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        right: BorderSide(
+                                          color: Colors.grey[300]!,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        entry.discountFactor.toStringAsFixed(6),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                          color: Colors.orange[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Present Value
+                                  Container(
+                                    width: columnWidths['present_value'],
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entry.presentValue)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                          color: Colors.purple[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Total Present Value Footer
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                      border: Border(top: BorderSide(color: Colors.grey[300]!)),
+                    ),
+                    child: SizedBox(
+                      width: totalWidth,
+                      child: Row(
+                        children: [
+                          // Empty cells
+                          Container(
+                            width: columnWidths['period'],
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: columnWidths['payment'],
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: columnWidths['discount_factor'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Total PV:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: columnWidths['present_value'],
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Center(
+                              child: Text(
+                                '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Note
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Text(
+              'Note: Present Value is calculated using the formula: PV = Payment × (1/(1+r)^n) where r is the periodic discount rate',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1890,7 +3514,7 @@ class _LeaselistState extends State<Leaselist> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header with Present Value button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1942,10 +3566,30 @@ class _LeaselistState extends State<Leaselist> {
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.close, size: 28, color: Colors.grey[700]),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Close',
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.calculate, size: 18, color: Colors.white),
+                    label: const Text('Present Value'),
+                    onPressed: () => _showPresentValueDialog(lease),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal[700],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: Icon(Icons.close, size: 28, color: Colors.grey[700]),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
+                ],
               ),
             ],
           ),
@@ -1993,12 +3637,6 @@ class _LeaselistState extends State<Leaselist> {
                       '${entries.length} ${_getPeriodUnit(lease.computation)}',
                       Icons.access_time,
                       Colors.purple[700]!,
-                    ),
-                    _buildScheduleSummaryItem(
-                      'Present Value',
-                      '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.presentValue)}',
-                      Icons.attach_money,
-                      Colors.teal[700]!,
                     ),
                   ],
                 ),
@@ -2826,15 +4464,6 @@ class _LeaselistState extends State<Leaselist> {
           type: PlutoColumnType.text(),
           width: isSmallScreen ? 80 : 100,
         ),
-      if (!isSmallScreen)
-        PlutoColumn(
-          title: 'Lease Period',
-          field: 'lease_period',
-          readOnly: true,
-          enableEditingMode: false,
-          type: PlutoColumnType.text(),
-          width: isSmallScreen ? 80 : 100,
-        ),
       PlutoColumn(
         title: 'Contract Amount',
         field: 'contract_amount',
@@ -2907,7 +4536,7 @@ class _LeaselistState extends State<Leaselist> {
         field: 'actions',
         enableEditingMode: false,
         type: PlutoColumnType.text(),
-        width: isSmallScreen ? 120 : 150,
+        width: isSmallScreen ? 180 : 200, // Increased width for three buttons
         renderer: (rendererContext) {
           final row = rendererContext.row;
           final leaseCode = row.cells['code']!.value as String;
@@ -2932,9 +4561,9 @@ class _LeaselistState extends State<Leaselist> {
                   constraints: const BoxConstraints(),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
 
-              // View Schedule Button - NEW
+              // View Schedule Button
               Container(
                 child: IconButton(
                   icon: Icon(
@@ -2946,6 +4575,24 @@ class _LeaselistState extends State<Leaselist> {
                     _showLeaseSchedule(lease);
                   },
                   tooltip: 'View Payment Schedule',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+              const SizedBox(width: 4),
+
+              // Present Value Button - NEW
+              Container(
+                child: IconButton(
+                  icon: Icon(
+                    Icons.calculate,
+                    size: 18,
+                    color: Colors.teal[700],
+                  ),
+                  onPressed: () {
+                    _showPresentValueDialog(lease);
+                  },
+                  tooltip: 'View Present Value',
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(),
                 ),
@@ -2993,7 +4640,6 @@ class _LeaselistState extends State<Leaselist> {
           'lease_term': PlutoCell(
             value: '${lease.leaseTerm} ${lease.leasePeriod}',
           ),
-          'lease_period': PlutoCell(value: lease.leasePeriod),
           'contract_amount': PlutoCell(value: lease.contractAmount),
           'status': PlutoCell(value: lease.status),
           'actions': PlutoCell(value: ''),
@@ -3173,53 +4819,46 @@ class _LeaselistState extends State<Leaselist> {
         ? totalContractValue / totalLeases
         : 0.0;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildStatCard(
             'Total Leases',
             totalLeases.toString(),
             Icons.assignment,
             Colors.blue[700]!,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
+          const SizedBox(width: 12),
+          _buildStatCard(
             'Active Leases',
             activeLeases.toString(),
             Icons.check_circle,
             Colors.green[700]!,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
+          const SizedBox(width: 12),
+          _buildStatCard(
             'Completed',
             completedLeases.toString(),
             Icons.done_all,
             Colors.blue[700]!,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
+          const SizedBox(width: 12),
+          _buildStatCard(
             'Amendment',
             amendmentLeases.toString(),
             Icons.change_circle,
             Colors.orange[700]!,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
+          const SizedBox(width: 12),
+          _buildStatCard(
             'Cancelled',
-            amendmentLeases.toString(),
+            cancelLeases.toString(),
             Icons.cancel,
-            Colors.grey[700]!,
+            Colors.red[700]!,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -3232,7 +4871,8 @@ class _LeaselistState extends State<Leaselist> {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
+      child: Container(
+        width: 150,
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
@@ -3539,54 +5179,55 @@ class _LeaselistState extends State<Leaselist> {
                       ),
                     ]),
 
-                    // View Schedule Button
+                    // Action Buttons
                     const SizedBox(height: 20),
                     _buildDetailSection('Actions', [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.purple[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.purple[200]!),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'View Payment Schedule:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.purple[800],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              Icons.schedule,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: const Text('Payment Schedule'),
+                            onPressed: () {
+                              _showLeaseSchedule(lease);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple[700],
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
                               ),
                             ),
-                            ElevatedButton.icon(
-                              icon: Icon(
-                                Icons.schedule,
-                                size: 18,
-                                color: Colors.white,
+                          ),
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              Icons.calculate,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: const Text('Present Value'),
+                            onPressed: () {
+                              _showPresentValueDialog(lease);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal[700],
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
                               ),
-                              label: const Text(
-                                'Open Schedule',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              onPressed: () {
-                                _showLeaseSchedule(lease);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[700],
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                elevation: 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ]),
 

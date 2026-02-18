@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const String baseUrl =
@@ -15,6 +16,9 @@ class ApiService {
   final String assetPolicyEndPoint = "/asset-policies/";
   final String companyEndPoint = "/companies/";
   final String departmentEndPoint = "/departments/";
+  final String roleEndPoint = "/roles/";
+  final String signupEndPoint = "/signup/";
+  final String loginEndPoint = "/login/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -538,6 +542,95 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Error getting depreciation history: $e');
+    }
+  }
+
+  Future<List<Department>> fetchDepartments() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + departmentEndPoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => Department.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load departments");
+    }
+  }
+
+  Future<List<Role>> fetchRoles() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + roleEndPoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => Role.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load roles");
+    }
+  }
+
+  Future<List<dynamic>> fetchUsers() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + signupEndPoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load users');
+    }
+  }
+
+  Future<bool> registerUser(User user, String password) async {
+    final url = Uri.parse(baseUrl + signupEndPoint);
+
+    final Map<String, dynamic> signupData = user.toJson();
+    signupData['password_hash'] = password;
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(signupData),
+    );
+
+    if (response.statusCode == 201) {
+      return true;
+    } else {
+      print("Signup Error: ${response.body}");
+      return false;
+    }
+  }
+
+  Future<LoginResponse?> loginUser(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl + loginEndPoint),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "password": password}),
+      );
+
+      if (response.statusCode == 200) {
+        final decodedData = jsonDecode(response.body);
+        final loginResponse = LoginResponse.fromJson(decodedData);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setInt('userId', loginResponse.userId);
+        await prefs.setString('userName', loginResponse.userName);
+        await prefs.setString('role', loginResponse.role);
+
+        return loginResponse;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print("Login API Error: $e");
+      return null;
     }
   }
 }

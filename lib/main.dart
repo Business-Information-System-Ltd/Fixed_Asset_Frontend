@@ -1,14 +1,33 @@
-import 'package:fixed_asset_frontend/screens/dashboard.dart';
+import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
 import 'package:fixed_asset_frontend/screens/wip_list.dart';
+import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: MainScreen()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: Leaselist()));
+}
+
+class LoginScreen extends StatelessWidget {
+  final GoogleAuthService _authService = GoogleAuthService();
+
+  LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => _authService.signInWithGoogle(context),
+          child: const Text('Sign in with Google'),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatefulWidget {
