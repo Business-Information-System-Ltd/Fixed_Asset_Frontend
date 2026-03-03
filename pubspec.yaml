@@ -41,6 +41,12 @@ dependencies:
   font_awesome_flutter: ^10.12.0
   google_sign_in: ^6.2.1
   aad_oauth: ^1.0.1
+  printing: ^5.14.2
+  pdf: ^3.11.3
+  csv: ^6.0.0
+  share_plus: ^12.0.1
+  cross_file: ^0.3.4+2
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

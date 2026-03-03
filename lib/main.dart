@@ -1,4 +1,5 @@
-import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
+import 'package:fixed_asset_frontend/depreciation/asset_depreciaiton_policy.dart';
+import 'package:fixed_asset_frontend/depreciation/depreciation_convention.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
@@ -9,7 +10,7 @@ import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: Leaselist()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
 }
 
 class LoginScreen extends StatelessWidget {

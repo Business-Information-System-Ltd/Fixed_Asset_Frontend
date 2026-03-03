@@ -2445,14 +2445,24 @@
 // }
 
 // import 'package:fixed_asset_frontend/api/api_service.dart';
-import 'dart:math';
 
+import 'dart:math';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:fixed_asset_frontend/screens/search_function.dart';
 import 'package:fixed_asset_frontend/screens/date_filter.dart';
 import 'package:fixed_asset_frontend/screens/pagination.dart';
-import 'package:fixed_asset_frontend/screens/search_function.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class Leases {
   final int id;
@@ -3439,23 +3449,50 @@ class _LeaselistState extends State<Leaselist> {
             ),
           ),
 
-          // Note
+          // Action Buttons for PV Dialog
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Text(
-              'Note: Present Value is calculated using the formula: PV = Payment × (1/(1+r)^n) where r is the periodic discount rate',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
-                fontStyle: FontStyle.italic,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton.icon(
+                icon: Icon(Icons.picture_as_pdf, size: 18, color: Colors.white),
+                label: const Text(
+                  'Print PDF',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () => _printPresentValuePDF(lease, entries, totalPV),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[700],
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                icon: Icon(Icons.download, size: 18, color: Colors.white),
+                label: const Text(
+                  'Export CSV',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: () =>
+                    _exportPresentValueCSV(lease, entries, totalPV),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -3482,6 +3519,11 @@ class _LeaselistState extends State<Leaselist> {
   Widget _buildScheduleDialog(LeaseSchedule schedule) {
     final lease = schedule.lease;
     final entries = schedule.entries;
+    final pvEntries = _generatePresentValue(lease);
+    final totalPV = pvEntries.fold(
+      0.0,
+      (sum, entry) => sum + entry.presentValue,
+    );
     final isMonthly = lease.computation.toLowerCase().contains('month');
     final isQuarterly = lease.computation.toLowerCase().contains('quarter');
     final periodLabel = isMonthly
@@ -3559,10 +3601,6 @@ class _LeaselistState extends State<Leaselist> {
                       '${lease.description} • ${lease.leasorName}',
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
-                    Text(
-                      'Computation: ${lease.computation} • Discount Rate: ${lease.discountRate}%',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
                   ],
                 ),
               ),
@@ -3570,7 +3608,10 @@ class _LeaselistState extends State<Leaselist> {
                 children: [
                   ElevatedButton.icon(
                     icon: Icon(Icons.calculate, size: 18, color: Colors.white),
-                    label: const Text('Present Value'),
+                    label: const Text(
+                      'Present Value',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     onPressed: () => _showPresentValueDialog(lease),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal[700],
@@ -3594,53 +3635,43 @@ class _LeaselistState extends State<Leaselist> {
             ],
           ),
 
-          // Schedule Summary
-          Center(
-            child: Card(
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.grey[200]!),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Wrap(
-                  spacing: 16,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.spaceEvenly,
-                  children: [
-                    _buildScheduleSummaryItem(
-                      'Lease Term',
-                      '${lease.leaseTerm} ${lease.leasePeriod}',
-                      Icons.calendar_today,
-                      Colors.blue[700]!,
-                    ),
-                    _buildScheduleSummaryItem(
-                      'Payment Amount',
-                      '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
-                          ? '/month'
-                          : isQuarterly
-                          ? '/quarter'
-                          : '/year'}',
-                      Icons.payment,
-                      Colors.green[700]!,
-                    ),
-                    _buildScheduleSummaryItem(
-                      'Discount Rate',
-                      '${lease.discountRate}%',
-                      Icons.percent,
-                      Colors.orange[700]!,
-                    ),
-                    _buildScheduleSummaryItem(
-                      'Total Periods',
-                      '${entries.length} ${_getPeriodUnit(lease.computation)}',
-                      Icons.access_time,
-                      Colors.purple[700]!,
-                    ),
-                  ],
+          // Schedule Summary as Text (not cards)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryTextItem(
+                  'Lease Term',
+                  '${lease.leaseTerm} ${lease.leasePeriod}',
                 ),
-              ),
+                _buildSummaryTextItem(
+                  'Payment Amount',
+                  '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+                      ? '/month'
+                      : isQuarterly
+                      ? '/quarter'
+                      : '/year'}',
+                ),
+                _buildSummaryTextItem(
+                  'Discount Rate',
+                  '${lease.discountRate}%',
+                ),
+                _buildSummaryTextItem(
+                  'Total Periods',
+                  '${entries.length} ${_getPeriodUnit(lease.computation)}',
+                ),
+                _buildSummaryTextItem(
+                  'Total Present Value',
+                  '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+                ),
+              ],
             ),
           ),
 
@@ -4200,18 +4231,11 @@ class _LeaselistState extends State<Leaselist> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton.icon(
-                icon: Icon(Icons.print, size: 20, color: Colors.white),
-                label: Text('Print', style: TextStyle(color: Colors.white)),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Print functionality will be implemented'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                },
+                icon: Icon(Icons.picture_as_pdf, size: 20, color: Colors.white),
+                label: Text('Print PDF', style: TextStyle(color: Colors.white)),
+                onPressed: () => _printSchedulePDF(lease, entries, totalPV),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[700],
+                  backgroundColor: Colors.red[700],
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -4226,17 +4250,10 @@ class _LeaselistState extends State<Leaselist> {
               ElevatedButton.icon(
                 icon: Icon(Icons.download, size: 20, color: Colors.white),
                 label: Text(
-                  'Export to Excel',
+                  'Export CSV',
                   style: TextStyle(color: Colors.white),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Export functionality will be implemented'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                },
+                onPressed: () => _exportScheduleCSV(lease, entries, totalPV),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[600],
                   padding: const EdgeInsets.symmetric(
@@ -4256,7 +4273,1173 @@ class _LeaselistState extends State<Leaselist> {
     );
   }
 
-  // NEW WIDGET: Build schedule summary item
+  // NEW: Build summary text item
+  Widget _buildSummaryTextItem(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue[800],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // // NEW: Print PDF for Schedule
+  // Future<void> _printSchedulePDF(
+  //   Leases lease,
+  //   List<LeaseScheduleEntry> entries,
+  //   double totalPV,
+  // ) async {
+  //   final doc = pw.Document();
+
+  //   final isMonthly = lease.computation.toLowerCase().contains('month');
+  //   final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+  //   final periodLabel = isMonthly
+  //       ? 'Month'
+  //       : isQuarterly
+  //       ? 'Quarter'
+  //       : 'Year';
+
+  //   doc.addPage(
+  //     pw.MultiPage(
+  //       pageFormat: PdfPageFormat.a4.landscape,
+  //       build: (context) => [
+  //         pw.Header(
+  //           level: 0,
+  //           child: pw.Text(
+  //             'Lease Payment Schedule',
+  //             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+  //           ),
+  //         ),
+  //         pw.SizedBox(height: 10),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Lease Code: ${lease.code}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Lease Type: ${lease.leaseType}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Description: ${lease.description}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Leasor: ${lease.leasorName}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Term: ${lease.leaseTerm} ${lease.leasePeriod}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Discount Rate: ${lease.discountRate}%',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.SizedBox(height: 20),
+
+  //         // Summary
+  //         pw.Container(
+  //           padding: pw.EdgeInsets.all(8),
+  //           decoration: pw.BoxDecoration(
+  //             border: pw.Border.all(color: PdfColors.grey),
+  //             borderRadius: pw.BorderRadius.circular(4),
+  //           ),
+  //           child: pw.Column(
+  //             crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //             children: [
+  //               pw.Text(
+  //                 'Summary:',
+  //                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //               ),
+  //               pw.SizedBox(height: 5),
+  //               pw.Row(
+  //                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+  //                 children: [
+  //                   pw.Text(
+  //                     'Payment: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+  //                         ? '/month'
+  //                         : isQuarterly
+  //                         ? '/quarter'
+  //                         : '/year'}',
+  //                   ),
+  //                   pw.Text(
+  //                     'Total Periods: ${entries.length} ${_getPeriodUnit(lease.computation)}',
+  //                   ),
+  //                   pw.Text(
+  //                     'Total PV: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+
+  //         pw.SizedBox(height: 20),
+
+  //         // Table
+  //         pw.TableHelper.fromTextArray(
+  //           headers: [
+  //             periodLabel,
+  //             'Opening Lease\nLiability',
+  //             'Interest\n(${lease.discountRate}%)',
+  //             'Lease\nPayment',
+  //             'Closing Lease\nLiability',
+  //             'Opening\nROU Asset',
+  //             'ROU\nDepreciation',
+  //             'Closing\nROU Asset',
+  //           ],
+  //           data: entries
+  //               .map(
+  //                 (e) => [
+  //                   e.period.toString(),
+  //                   NumberFormat('#,##0.00').format(e.openingLeaseLiability),
+  //                   NumberFormat('#,##0.00').format(e.interest),
+  //                   NumberFormat('#,##0.00').format(e.leasePayment),
+  //                   NumberFormat('#,##0.00').format(e.closingLeaseLiability),
+  //                   NumberFormat('#,##0.00').format(e.openingROUAsset),
+  //                   NumberFormat('#,##0.00').format(e.rOUDepreciation),
+  //                   NumberFormat('#,##0.00').format(e.closingROUAsset),
+  //                 ],
+  //               )
+  //               .toList(),
+  //           border: pw.TableBorder.all(),
+  //           headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //           cellAlignment: pw.Alignment.centerRight,
+  //         ),
+
+  //         pw.SizedBox(height: 20),
+
+  //         // First Entry Summary
+  //         pw.Container(
+  //           padding: pw.EdgeInsets.all(8),
+  //           decoration: pw.BoxDecoration(
+  //             border: pw.Border.all(color: PdfColors.green),
+  //             borderRadius: pw.BorderRadius.circular(4),
+  //           ),
+  //           child: pw.Column(
+  //             crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //             children: [
+  //               pw.Text(
+  //                 'For $periodLabel 1 Entry',
+  //                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //               ),
+  //               pw.SizedBox(height: 5),
+  //               pw.Row(
+  //                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //                 children: [
+  //                   pw.Text(
+  //                     'Short Term Lease: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entries[0].shortTermLease)}',
+  //                   ),
+  //                   pw.Text(
+  //                     'Long Term Lease: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(entries[0].longTermLease)}',
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+
+  //   await Printing.layoutPdf(onLayout: (format) async => doc.save());
+  // }
+
+  // // NEW: Print PDF for Present Value
+  // Future<void> _printPresentValuePDF(
+  //   Leases lease,
+  //   List<PresentValueEntry> entries,
+  //   double totalPV,
+  // ) async {
+  //   final doc = pw.Document();
+
+  //   final isMonthly = lease.computation.toLowerCase().contains('month');
+  //   final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+  //   final periodLabel = isMonthly
+  //       ? 'Month'
+  //       : isQuarterly
+  //       ? 'Quarter'
+  //       : 'Year';
+
+  //   doc.addPage(
+  //     pw.Page(
+  //       pageFormat: PdfPageFormat.a4,
+  //       build: (context) => [
+  //         pw.Header(
+  //           level: 0,
+  //           child: pw.Text(
+  //             'Present Value Calculation',
+  //             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+  //           ),
+  //         ),
+  //         pw.SizedBox(height: 10),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Lease Code: ${lease.code}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Lease Type: ${lease.leaseType}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Description: ${lease.description}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Leasor: ${lease.leasorName}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             pw.Text(
+  //               'Term: ${lease.leaseTerm} ${lease.leasePeriod}',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //             pw.Text(
+  //               'Discount Rate: ${lease.discountRate}%',
+  //               style: pw.TextStyle(fontSize: 12),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.SizedBox(height: 20),
+
+  //         // Summary
+  //         pw.Container(
+  //           padding: pw.EdgeInsets.all(8),
+  //           decoration: pw.BoxDecoration(
+  //             border: pw.Border.all(color: PdfColors.grey),
+  //             borderRadius: pw.BorderRadius.circular(4),
+  //           ),
+  //           child: pw.Column(
+  //             crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //             children: [
+  //               pw.Text(
+  //                 'Summary:',
+  //                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //               ),
+  //               pw.SizedBox(height: 5),
+  //               pw.Row(
+  //                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+  //                 children: [
+  //                   pw.Text(
+  //                     'Payment: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+  //                         ? '/month'
+  //                         : isQuarterly
+  //                         ? '/quarter'
+  //                         : '/year'}',
+  //                   ),
+  //                   pw.Text(
+  //                     'Total Periods: ${entries.length} ${_getPeriodUnit(lease.computation)}',
+  //                   ),
+  //                   pw.Text(
+  //                     'Total PV: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+
+  //         pw.SizedBox(height: 20),
+
+  //         // Table
+  //         pw.TableHelper.fromTextArray(
+  //           headers: [
+  //             periodLabel,
+  //             'Payment',
+  //             'Discount Factor',
+  //             'Present Value',
+  //           ],
+  //           data: entries
+  //               .map(
+  //                 (e) => [
+  //                   e.period.toString(),
+  //                   '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(e.payment)}',
+  //                   e.discountFactor.toStringAsFixed(6),
+  //                   '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(e.presentValue)}',
+  //                 ],
+  //               )
+  //               .toList(),
+  //           border: pw.TableBorder.all(),
+  //           headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //           cellAlignment: pw.Alignment.centerRight,
+  //         ),
+
+  //         pw.SizedBox(height: 10),
+
+  //         // Total
+  //         pw.Align(
+  //           alignment: pw.Alignment.centerRight,
+  //           child: pw.Container(
+  //             padding: pw.EdgeInsets.all(8),
+  //             child: pw.Text(
+  //               'Total Present Value: ${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+  //               style: pw.TextStyle(
+  //                 fontWeight: pw.FontWeight.bold,
+  //                 fontSize: 14,
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+
+  //         pw.SizedBox(height: 20),
+
+  //         // Formula Note
+  //         pw.Container(
+  //           padding: pw.EdgeInsets.all(8),
+  //           decoration: pw.BoxDecoration(
+  //             border: pw.Border.all(color: PdfColors.grey),
+  //             borderRadius: pw.BorderRadius.circular(4),
+  //           ),
+  //           child: pw.Text(
+  //             'Note: Present Value is calculated using the formula: PV = Payment × (1/(1+r)^n) where r is the periodic discount rate',
+  //             style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+
+  //   await Printing.layoutPdf(onLayout: (format) async => doc.save());
+  // }
+  // NEW: Print PDF for Schedule
+  // NEW: Print PDF for Schedule (Multi-page) with improved layout
+  Future<void> _printSchedulePDF(
+    Leases lease,
+    List<LeaseScheduleEntry> entries,
+    double totalPV,
+  ) async {
+    final doc = pw.Document();
+
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+    final periodLabel = isMonthly
+        ? 'Month'
+        : isQuarterly
+        ? 'Quarter'
+        : 'Year';
+
+    // Calculate rows per page (adjust based on your needs)
+    final int rowsPerPage = 20;
+    final currency = _getCurrencySymbol(lease.currency);
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(20),
+        build: (context) => [
+          // Main Title
+          pw.Center(
+            child: pw.Text(
+              'Lease Payment Schedule',
+              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Two-column layout like your image
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Left Column
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('Lease Code', lease.code),
+                    _buildInfoRow('Description', lease.description),
+                    _buildInfoRow(
+                      'Term',
+                      '${lease.leaseTerm} ${lease.leasePeriod}',
+                    ),
+                    _buildInfoRow('Currency', lease.currency),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 40),
+              // Right Column
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('Lease Type', lease.leaseType),
+                    _buildInfoRow('Lessor', lease.leasorName),
+                    _buildInfoRow('Discount Rate', '${lease.discountRate} %'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 20),
+          pw.Divider(),
+          pw.SizedBox(height: 20),
+
+          // Summary Section
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey),
+              borderRadius: pw.BorderRadius.circular(4),
+              color: PdfColors.grey100,
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSummaryBox(
+                  'Payment Amount',
+                  '${currency} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+                      ? '/month'
+                      : isQuarterly
+                      ? '/quarter'
+                      : '/year'}',
+                ),
+                _buildSummaryBox(
+                  'Total Periods',
+                  '${entries.length} ${_getPeriodUnit(lease.computation)}',
+                ),
+                _buildSummaryBox(
+                  'Total Present Value',
+                  '${currency} ${NumberFormat('#,##0.00').format(totalPV)}',
+                ),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 20),
+
+          // Table Header (appears on every page)
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue50,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.grey),
+                top: pw.BorderSide(color: PdfColors.grey),
+              ),
+            ),
+            child: pw.Row(
+              children: [
+                _buildPdfHeaderCell(periodLabel, flex: 1),
+                _buildPdfHeaderCell('Opening Lease\nLiability', flex: 2),
+                _buildPdfHeaderCell(
+                  'Interest\n(${lease.discountRate}%)',
+                  flex: 2,
+                ),
+                _buildPdfHeaderCell('Lease\nPayment', flex: 2),
+                _buildPdfHeaderCell('Closing Lease\nLiability', flex: 2),
+                _buildPdfHeaderCell('Opening\nROU Asset', flex: 2),
+                _buildPdfHeaderCell('ROU\nDepreciation', flex: 2),
+                _buildPdfHeaderCell('Closing\nROU Asset', flex: 2),
+              ],
+            ),
+          ),
+
+          // Table Body - Split into pages
+          ..._buildPdfTablePages(
+            entries: entries,
+            rowsPerPage: rowsPerPage,
+            lease: lease,
+          ),
+
+          // First Entry Summary (appears on last page only)
+          if (entries.isNotEmpty)
+            pw.Column(
+              children: [
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 10),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.green),
+                    borderRadius: pw.BorderRadius.circular(4),
+                    color: PdfColors.green50,
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'For $periodLabel 1 Entry',
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.green700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        children: [
+                          pw.Expanded(
+                            child: pw.Row(
+                              children: [
+                                pw.Text(
+                                  'Short Term Lease: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
+                                pw.Text(
+                                  '${currency} ${NumberFormat('#,##0.00').format(entries[0].shortTermLease)}',
+                                ),
+                              ],
+                            ),
+                          ),
+                          pw.Container(
+                            width: 1,
+                            height: 20,
+                            color: PdfColors.green300,
+                          ),
+                          pw.SizedBox(width: 20),
+                          pw.Expanded(
+                            child: pw.Row(
+                              children: [
+                                pw.Text(
+                                  'Long Term Lease: ',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
+                                pw.Text(
+                                  '${currency} ${NumberFormat('#,##0.00').format(entries[0].longTermLease)}',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 10),
+          child: pw.Text(
+            'Page ${context.pageNumber} of ${context.pagesCount}',
+            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+          ),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) async => doc.save());
+  }
+
+  // NEW: Print PDF for Present Value (Multi-page) with improved layout
+  Future<void> _printPresentValuePDF(
+    Leases lease,
+    List<PresentValueEntry> entries,
+    double totalPV,
+  ) async {
+    final doc = pw.Document();
+
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+    final periodLabel = isMonthly
+        ? 'Month'
+        : isQuarterly
+        ? 'Quarter'
+        : 'Year';
+
+    // Calculate rows per page (adjust based on your needs)
+    final int rowsPerPage = 25;
+    final currency = _getCurrencySymbol(lease.currency);
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (context) => [
+          // Main Title
+          pw.Center(
+            child: pw.Text(
+              'Present Value Calculation',
+              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Two-column layout like your image
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Left Column
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('Lease Code', lease.code),
+                    _buildInfoRow('Description', lease.description),
+                    _buildInfoRow(
+                      'Term',
+                      '${lease.leaseTerm} ${lease.leasePeriod}',
+                    ),
+                    _buildInfoRow('Currency', lease.currency),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 40),
+              // Right Column
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoRow('Lease Type', lease.leaseType),
+                    _buildInfoRow('Lessor', lease.leasorName),
+                    _buildInfoRow('Discount Rate', '${lease.discountRate} %'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 20),
+          pw.Divider(),
+          pw.SizedBox(height: 20),
+
+          // Summary Section
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey),
+              borderRadius: pw.BorderRadius.circular(4),
+              color: PdfColors.grey100,
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSummaryBox(
+                  'Payment Amount',
+                  '${currency} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+                      ? '/month'
+                      : isQuarterly
+                      ? '/quarter'
+                      : '/year'}',
+                ),
+                _buildSummaryBox(
+                  'Total Periods',
+                  '${entries.length} ${_getPeriodUnit(lease.computation)}',
+                ),
+                _buildSummaryBox(
+                  'Total Present Value',
+                  '${currency} ${NumberFormat('#,##0.00').format(totalPV)}',
+                ),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 20),
+
+          // Table Header (appears on every page)
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue50,
+              border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.grey),
+                top: pw.BorderSide(color: PdfColors.grey),
+              ),
+            ),
+            child: pw.Row(
+              children: [
+                _buildPdfHeaderCell(periodLabel, flex: 1),
+                _buildPdfHeaderCell('Payment', flex: 2),
+                _buildPdfHeaderCell('Discount Factor', flex: 2),
+                _buildPdfHeaderCell('Present Value', flex: 2),
+              ],
+            ),
+          ),
+
+          // Table Body - Split into pages
+          ..._buildPdfPresentValuePages(
+            entries: entries,
+            rowsPerPage: rowsPerPage,
+            lease: lease,
+          ),
+
+          // Total and Formula Note (appears on last page only)
+          pw.Column(
+            children: [
+              pw.SizedBox(height: 10),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Total Present Value:',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    pw.Text(
+                      '${currency} ${NumberFormat('#,##0.00').format(totalPV)}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 14,
+                        color: PdfColors.blue700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Formula Note
+              pw.Container(
+                padding: const pw.EdgeInsets.all(8),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey),
+                  borderRadius: pw.BorderRadius.circular(4),
+                  color: PdfColors.grey50,
+                ),
+                child: pw.Text(
+                  'Note: Present Value is calculated using the formula: PV = Payment × (1/(1+r)^n) where r is the periodic discount rate',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontStyle: pw.FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        footer: (context) => pw.Container(
+          alignment: pw.Alignment.centerRight,
+          margin: const pw.EdgeInsets.only(top: 10),
+          child: pw.Text(
+            'Page ${context.pageNumber} of ${context.pagesCount}',
+            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+          ),
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (format) async => doc.save());
+  }
+
+  // Helper: Build info row for the header
+  pw.Widget _buildInfoRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 100,
+            child: pw.Text(
+              '$label:',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11),
+            ),
+          ),
+          pw.Text(value, style: pw.TextStyle(fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  // Helper: Build summary box
+  pw.Widget _buildSummaryBox(String label, String value) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 12,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.blue700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper: Build PDF header cell
+  pw.Widget _buildPdfHeaderCell(String text, {int flex = 1}) {
+    return pw.Expanded(
+      flex: flex,
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(8),
+        decoration: pw.BoxDecoration(
+          border: pw.Border(right: pw.BorderSide(color: PdfColors.grey300)),
+        ),
+        child: pw.Text(
+          text,
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 10,
+            color: PdfColors.blue900,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper: Build PDF table cell
+  pw.Widget _buildPdfCell(
+    String text, {
+    int flex = 1,
+    pw.Alignment alignment = pw.Alignment.centerRight,
+  }) {
+    return pw.Expanded(
+      flex: flex,
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(6),
+        decoration: pw.BoxDecoration(
+          border: pw.Border(
+            right: pw.BorderSide(color: PdfColors.grey300),
+            bottom: pw.BorderSide(color: PdfColors.grey300),
+          ),
+        ),
+        child: pw.Container(
+          alignment: alignment,
+          child: pw.Text(
+            text,
+            style: pw.TextStyle(fontSize: 9),
+            textAlign: alignment == pw.Alignment.centerRight
+                ? pw.TextAlign.right
+                : pw.TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper: Build table pages for schedule
+  List<pw.Widget> _buildPdfTablePages({
+    required List<LeaseScheduleEntry> entries,
+    required int rowsPerPage,
+    required Leases lease,
+  }) {
+    List<pw.Widget> pages = [];
+
+    // Split entries into chunks
+    for (int i = 0; i < entries.length; i += rowsPerPage) {
+      final end = (i + rowsPerPage) > entries.length
+          ? entries.length
+          : i + rowsPerPage;
+      final pageEntries = entries.sublist(i, end);
+
+      pages.add(
+        pw.Column(
+          children: pageEntries.map((entry) {
+            final isEven = pageEntries.indexOf(entry) % 2 == 0;
+            return pw.Container(
+              color: isEven ? PdfColors.grey50 : null,
+              child: pw.Row(
+                children: [
+                  _buildPdfCell(
+                    entry.period.toString(),
+                    flex: 1,
+                    alignment: pw.Alignment.center,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat(
+                      '#,##0.00',
+                    ).format(entry.openingLeaseLiability),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat('#,##0.00').format(entry.interest),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat('#,##0.00').format(entry.leasePayment),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat(
+                      '#,##0.00',
+                    ).format(entry.closingLeaseLiability),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat('#,##0.00').format(entry.openingROUAsset),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat('#,##0.00').format(entry.rOUDepreciation),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    NumberFormat('#,##0.00').format(entry.closingROUAsset),
+                    flex: 2,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    return pages;
+  }
+
+  // Helper: Build table pages for present value
+  List<pw.Widget> _buildPdfPresentValuePages({
+    required List<PresentValueEntry> entries,
+    required int rowsPerPage,
+    required Leases lease,
+  }) {
+    List<pw.Widget> pages = [];
+    final currency = _getCurrencySymbol(lease.currency);
+
+    // Split entries into chunks
+    for (int i = 0; i < entries.length; i += rowsPerPage) {
+      final end = (i + rowsPerPage) > entries.length
+          ? entries.length
+          : i + rowsPerPage;
+      final pageEntries = entries.sublist(i, end);
+
+      pages.add(
+        pw.Column(
+          children: pageEntries.map((entry) {
+            final isEven = pageEntries.indexOf(entry) % 2 == 0;
+            return pw.Container(
+              color: isEven ? PdfColors.grey50 : null,
+              child: pw.Row(
+                children: [
+                  _buildPdfCell(
+                    entry.period.toString(),
+                    flex: 1,
+                    alignment: pw.Alignment.center,
+                  ),
+                  _buildPdfCell(
+                    '${currency} ${NumberFormat('#,##0.00').format(entry.payment)}',
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    entry.discountFactor.toStringAsFixed(6),
+                    flex: 2,
+                  ),
+                  _buildPdfCell(
+                    '${currency} ${NumberFormat('#,##0.00').format(entry.presentValue)}',
+                    flex: 2,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    return pages;
+  }
+
+  // NEW: Export CSV for Schedule
+  Future<void> _exportScheduleCSV(
+    Leases lease,
+    List<LeaseScheduleEntry> entries,
+    double totalPV,
+  ) async {
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+    final periodLabel = isMonthly
+        ? 'Month'
+        : isQuarterly
+        ? 'Quarter'
+        : 'Year';
+
+    List<List<String>> rows = [
+      ['Lease Payment Schedule'],
+      ['Lease Code', lease.code],
+      ['Lease Type', lease.leaseType],
+      ['Description', lease.description],
+      ['Leasor Name', lease.leasorName],
+      ['Lease Term', '${lease.leaseTerm} ${lease.leasePeriod}'],
+      [
+        'Payment Amount',
+        '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+            ? '/month'
+            : isQuarterly
+            ? '/quarter'
+            : '/year'}',
+      ],
+      ['Discount Rate', '${lease.discountRate}%'],
+      [
+        'Total Periods',
+        '${entries.length} ${_getPeriodUnit(lease.computation)}',
+      ],
+      [
+        'Total Present Value',
+        '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(totalPV)}',
+      ],
+      [''],
+      [
+        periodLabel,
+        'Opening Lease Liability',
+        'Interest',
+        'Lease Payment',
+        'Closing Lease Liability',
+        'Opening ROU Asset',
+        'ROU Depreciation',
+        'Closing ROU Asset',
+        'Short Term Lease',
+        'Long Term Lease',
+      ],
+    ];
+
+    for (var entry in entries) {
+      rows.add([
+        entry.period.toString(),
+        entry.openingLeaseLiability.toStringAsFixed(2),
+        entry.interest.toStringAsFixed(2),
+        entry.leasePayment.toStringAsFixed(2),
+        entry.closingLeaseLiability.toStringAsFixed(2),
+        entry.openingROUAsset.toStringAsFixed(2),
+        entry.rOUDepreciation.toStringAsFixed(2),
+        entry.closingROUAsset.toStringAsFixed(2),
+        entry.shortTermLease.toStringAsFixed(2),
+        entry.longTermLease.toStringAsFixed(2),
+      ]);
+    }
+
+    if (entries.isNotEmpty) {
+      rows.add(['']);
+      rows.add(['For $periodLabel 1 Entry']);
+      rows.add([
+        'Short Term Lease',
+        '${_getCurrencySymbol(lease.currency)} ${entries[0].shortTermLease.toStringAsFixed(2)}',
+      ]);
+      rows.add([
+        'Long Term Lease',
+        '${_getCurrencySymbol(lease.currency)} ${entries[0].longTermLease.toStringAsFixed(2)}',
+      ]);
+    }
+
+    String csv = const ListToCsvConverter().convert(rows);
+
+    final directory = await getApplicationDocumentsDirectory();
+    final path =
+        '${directory.path}/lease_schedule_${lease.code}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final file = File(path);
+    await file.writeAsString(csv);
+
+    await Share.shareXFiles([XFile(path)], text: 'Lease Schedule Export');
+  }
+
+  // NEW: Export CSV for Present Value
+  Future<void> _exportPresentValueCSV(
+    Leases lease,
+    List<PresentValueEntry> entries,
+    double totalPV,
+  ) async {
+    final isMonthly = lease.computation.toLowerCase().contains('month');
+    final isQuarterly = lease.computation.toLowerCase().contains('quarter');
+    final periodLabel = isMonthly
+        ? 'Month'
+        : isQuarterly
+        ? 'Quarter'
+        : 'Year';
+
+    List<List<String>> rows = [
+      ['Present Value Calculation'],
+      ['Lease Code', lease.code],
+      ['Lease Type', lease.leaseType],
+      ['Description', lease.description],
+      ['Leasor Name', lease.leasorName],
+      ['Lease Term', '${lease.leaseTerm} ${lease.leasePeriod}'],
+      [
+        'Payment Amount',
+        '${_getCurrencySymbol(lease.currency)} ${NumberFormat('#,##0.00').format(lease.paymentAmount)} ${isMonthly
+            ? '/month'
+            : isQuarterly
+            ? '/quarter'
+            : '/year'}',
+      ],
+      ['Discount Rate', '${lease.discountRate}%'],
+      [
+        'Total Periods',
+        '${entries.length} ${_getPeriodUnit(lease.computation)}',
+      ],
+      [''],
+      [periodLabel, 'Payment', 'Discount Factor', 'Present Value'],
+    ];
+
+    for (var entry in entries) {
+      rows.add([
+        entry.period.toString(),
+        entry.payment.toStringAsFixed(2),
+        entry.discountFactor.toStringAsFixed(6),
+        entry.presentValue.toStringAsFixed(2),
+      ]);
+    }
+
+    rows.add(['']);
+    rows.add([
+      'Total Present Value',
+      '${_getCurrencySymbol(lease.currency)} ${totalPV.toStringAsFixed(2)}',
+    ]);
+
+    String csv = const ListToCsvConverter().convert(rows);
+
+    final directory = await getApplicationDocumentsDirectory();
+    final path =
+        '${directory.path}/present_value_${lease.code}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final file = File(path);
+    await file.writeAsString(csv);
+
+    await Share.shareXFiles([XFile(path)], text: 'Present Value Export');
+  }
+
   Widget _buildScheduleSummaryItem(
     String label,
     String value,
@@ -4536,7 +5719,7 @@ class _LeaselistState extends State<Leaselist> {
         field: 'actions',
         enableEditingMode: false,
         type: PlutoColumnType.text(),
-        width: isSmallScreen ? 180 : 200, // Increased width for three buttons
+        width: isSmallScreen ? 180 : 200,
         renderer: (rendererContext) {
           final row = rendererContext.row;
           final leaseCode = row.cells['code']!.value as String;
@@ -4581,7 +5764,7 @@ class _LeaselistState extends State<Leaselist> {
               ),
               const SizedBox(width: 4),
 
-              // Present Value Button - NEW
+              // Present Value Button
               Container(
                 child: IconButton(
                   icon: Icon(
@@ -4872,7 +6055,7 @@ class _LeaselistState extends State<Leaselist> {
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Container(
-        width: 150,
+        width: 200,
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
