@@ -14,24 +14,6 @@ void main() {
   runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
 }
 
-// class LoginScreen extends StatelessWidget {
-//   final GoogleAuthService _authService = GoogleAuthService();
-
-//   LoginScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: Center(
-//         child: ElevatedButton(
-//           onPressed: () => _authService.signInWithGoogle(context),
-//           child: const Text('Sign in with Google'),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
