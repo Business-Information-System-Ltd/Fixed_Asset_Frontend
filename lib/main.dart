@@ -6,6 +6,7 @@ import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
 import 'package:fixed_asset_frontend/screens/wip_list.dart';
+import 'package:fixed_asset_frontend/userInformation/login.dart';
 import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
 
@@ -13,23 +14,23 @@ void main() {
   runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
 }
 
-class LoginScreen extends StatelessWidget {
-  final GoogleAuthService _authService = GoogleAuthService();
+// class LoginScreen extends StatelessWidget {
+//   final GoogleAuthService _authService = GoogleAuthService();
 
-  LoginScreen({super.key});
+//   LoginScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => _authService.signInWithGoogle(context),
-          child: const Text('Sign in with Google'),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Center(
+//         child: ElevatedButton(
+//           onPressed: () => _authService.signInWithGoogle(context),
+//           child: const Text('Sign in with Google'),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
