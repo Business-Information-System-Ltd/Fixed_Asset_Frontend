@@ -107,12 +107,12 @@ class _AssetCategoryPolicyFormState extends State<AssetCategoryPolicyForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Asset Category Depreciation Policy'),
-        centerTitle: true,
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Asset Category Depreciation Policy'),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blue[800],
+      //   foregroundColor: Colors.white,
+      // ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Center(
