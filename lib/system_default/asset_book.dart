@@ -28,12 +28,12 @@ class _assetBookState extends State<assetBook> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey,
-      appBar: AppBar(
-        title: const Text('Asset Books'),
-        centerTitle: true,
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Asset Books'),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blue[800],
+      //   foregroundColor: Colors.white,
+      // ),
       body: Center(
         child: Form(
           key: _formKey,
@@ -98,7 +98,7 @@ class _assetBookState extends State<assetBook> {
                     const Text("No"),
                   ],
                 ),
-  
+
                 const Divider(height: 30),
 
                 // Books

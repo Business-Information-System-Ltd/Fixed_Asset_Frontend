@@ -6,12 +6,14 @@ import 'package:fixed_asset_frontend/screens/general_ledger.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_item.dart';
 import 'package:fixed_asset_frontend/screens/wip_list.dart';
+import 'package:fixed_asset_frontend/system_default/asset_book.dart';
+import 'package:fixed_asset_frontend/system_default/settings.dart';
 import 'package:fixed_asset_frontend/userInformation/login.dart';
 import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: SettingsPage()));
 }
 
 class MyApp extends StatefulWidget {

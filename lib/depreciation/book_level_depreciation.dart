@@ -27,15 +27,15 @@ class _BookLevelDepreciationState extends State<BookLevelDepreciation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Book Level Policy",
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-      ),
+      // appBar: AppBar(
+      //   title: const Text(
+      //     "Book Level Policy",
+      //     style: TextStyle(color: Colors.white),
+      //   ),
+      //   centerTitle: true,
+      //   backgroundColor: Colors.blue[800],
+      //   foregroundColor: Colors.white,
+      // ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(8),
         child: Form(
