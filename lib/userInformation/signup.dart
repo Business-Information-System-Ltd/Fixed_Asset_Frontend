@@ -1,7 +1,12 @@
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/userInformation/login.dart';
+<<<<<<< HEAD
 import 'package:fixed_asset_frontend/userInformation/login.dart'
     hide LoginScreen;
+=======
+// import 'package:fixed_asset_frontend/userinformation/login.dart'
+//     hide LoginScreen;
+>>>>>>> 880776934be26413fea7bddece9067cf11e879ee
 import 'package:fixed_asset_frontend/widgets/customTextField.dart';
 import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:fixed_asset_frontend/widgets/socialButton.dart';
