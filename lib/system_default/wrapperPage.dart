@@ -16,12 +16,7 @@ class SystemDefaultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("SYSTEM DEFAULT POLICY"),
-        centerTitle: true,
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-      ),
+     
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(20),
         child: Center(child: DepreciationMainPanel()),

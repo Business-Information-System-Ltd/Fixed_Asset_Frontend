@@ -33,15 +33,6 @@ class GoogleAuthService {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      /// ✅ IMPORTANT CHANGE
-      // final String? accessToken = googleAuth.accessToken;
-
-      // if (accessToken == null) {
-      //   if (context.mounted) Navigator.pop(context);
-      //   debugPrint("Access Token မရပါ ❌");
-      //   return;
-      // }
-
 
   final String? tokenToSend = googleAuth.idToken ?? googleAuth.accessToken;
 
@@ -51,7 +42,6 @@ if (tokenToSend != null) {
 } else {
   print("Error: Token  မရပါ ❌");
 }
-    //  await sendTokenToDjango(tokenToSend, context);
 
     } catch (error) {
       if (context.mounted) Navigator.pop(context);
@@ -62,12 +52,12 @@ if (tokenToSend != null) {
   Future<void> sendTokenToDjango(
       String accessToken, BuildContext context) async {
 
-        const String apiUrl =
-        "http://127.0.0.1:8000/api/google-login/";
+        // const String apiUrl =
+        // "http://127.0.0.1:8000/api/google-login/";
 
 
-    // const String apiUrl =
-    //     "https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/google-login/";
+    const String apiUrl =
+        "https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/google-login/";
 
     try {
       final response = await http.post(

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  //  static const String baseUrl =
+  //     "http://127.0.0.1:8000/api";
   static const String baseUrl =
       "https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api";
   final String wipEndPoint = "/wips/";
@@ -19,6 +21,9 @@ class ApiService {
   final String roleEndPoint = "/roles/";
   final String signupEndPoint = "/signup/";
   final String loginEndPoint = "/login/";
+  final String systemDefaultEndPoint = "/system-default/";
+  final String assetBookEndPoint = "/asset-books/";
+  final String bookLevelEndPoint = "/book-level-policies/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -633,4 +638,156 @@ class ApiService {
       return null;
     }
   }
+//system default
+  Future<List<SystemDefault>> fetchSystemDefault() async {
+    final response = await http.get(Uri.parse(baseUrl + systemDefaultEndPoint));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("System Default Data: $data");
+      return data.map((dynamic item) => SystemDefault.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load System Default data');
+    }
+  }
+
+  Future<void> postSystemDefault(SystemDefault newSystemDefault) async {
+    final jsonData = newSystemDefault.toJson();
+    print("Sending system default Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + systemDefaultEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API System Default Response Status: ${response.statusCode}");
+    print("API System Default Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post System Default data');
+    }
+  }
+  Future<void> updateSystemDefault(int id, SystemDefault systemDefault) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl$systemDefaultEndPoint$id/'), 
+    headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    body: json.encode(systemDefault.toJson()),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to update System Default');
+  }
 }
+
+Future<void> deleteSystemDefault(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl$systemDefaultEndPoint$id/'),
+  );
+
+  if (response.statusCode != 200 && response.statusCode != 204) {
+    throw Exception('Failed to delete System Default');
+  }
+}
+
+//Asset Book
+  Future<List<AssetBook>> fetchAssetBook() async {
+    final response = await http.get(Uri.parse(baseUrl + assetBookEndPoint));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("Asset Book Data: $data");
+      return data.map((dynamic item) => AssetBook.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load System Default data');
+    }
+  }
+
+  Future<void> postAssetBook(AssetBook newAssetBook) async {
+    final jsonData = newAssetBook.toJson();
+    print("Sending Asset Book Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + assetBookEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Asset Book Response Status: ${response.statusCode}");
+    print("API Asset Book Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Asset Book data');
+    }
+  }
+  Future<void> updateAssetBook(int id, AssetBook assetBook) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl$assetBookEndPoint$id/'), 
+    headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    body: json.encode(assetBook.toJson()),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to update Asset Book');
+  }
+}
+
+Future<void> deleteAssetBook(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl$assetBookEndPoint$id/'),
+  );
+
+  if (response.statusCode != 200 && response.statusCode != 204) {
+    throw Exception('Failed to delete System Default');
+  }
+}
+
+//Book Level
+Future<List<BookPolicy>> fetchBookLevel() async {
+    final response = await http.get(Uri.parse(baseUrl + bookLevelEndPoint));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      print("Book Level Data: $data");
+      return data.map((dynamic item) => BookPolicy.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load System Default data');
+    }
+  }
+
+  Future<void> postBookLevel(BookPolicy newBookPolicy) async {
+    final jsonData = newBookPolicy.toJson();
+    print("Sending book level Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + bookLevelEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Book Level Response Status: ${response.statusCode}");
+    print("API Book Level Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Book Level data');
+    }
+  }
+  Future<void> updateBookLevel(int id, BookPolicy bookpolicy) async {
+  final response = await http.put(
+    Uri.parse('$baseUrl$bookLevelEndPoint$id/'), 
+    headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    body: json.encode(bookpolicy.toJson()),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to update Book Level');
+  }
+}
+
+Future<void> deleteBookLevel(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl$bookLevelEndPoint$id/'),
+  );
+
+  if (response.statusCode != 200 && response.statusCode != 204) {
+    throw Exception('Failed to delete Book Level');
+  }
+}
+
+}
+
+

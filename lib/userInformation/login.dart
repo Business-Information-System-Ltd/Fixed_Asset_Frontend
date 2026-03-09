@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               setState(() => _isMicrosoftLoading = true);
                               try {
                                 AuthService authService = AuthService();
-                                await authService.login();
+                                await authService.loginWithMicrosoft(context);
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text("Login Error: $e")),

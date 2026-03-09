@@ -1,304 +1,375 @@
 import 'package:flutter/material.dart';
+import 'package:fixed_asset_frontend/api/api_service.dart';
+import 'package:fixed_asset_frontend/api/data.dart';
 
-// void main() {
-//   runApp(
-//     const MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       home: DepreciationMainPanel(),
-//     ),
-//   );
-// }
-
-class DepreciationMainPanel extends StatelessWidget {
+class DepreciationMainPanel extends StatefulWidget {
   const DepreciationMainPanel({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // return Scaffold(
-    //   backgroundColor: Colors.grey[100],
-    //   appBar: AppBar(
-    //     title:  Text("SYSTEM DEFAULTS"),
-    //     centerTitle: true,
-    //     backgroundColor: Colors.blue,
-    //   ),
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        DepreciationSettingsPanel(),
-        SizedBox(height: 5),
-        DefaultStartRulePanel(),
-        SizedBox(height: 5),
-        DefaultConventionPanel(),
-        SizedBox(height: 20),
+  State<DepreciationMainPanel> createState() => _DepreciationMainPanelState();
+}
 
-        /// Buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[800],
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
-              ),
-              child: const Text(
-                "Save",
-                style: TextStyle(
-                  color: Color.fromARGB(255, 230, 221, 221),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+class _DepreciationMainPanelState extends State<DepreciationMainPanel> {
+  bool isEdit = false;
+  bool isLoading = true;
+    final _formKey = GlobalKey<FormState>();
+
+
+  SystemDefault? data;
+  SystemDefault? originalData;
+
+  final precisionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  SystemDefault createInitialData() {
+    return SystemDefault(
+      defaultId: 0,
+      depreciationFrequency: "Monthly",
+      postingDateRule: "End of Month",
+      roundingPrecision: 2,
+      preventNegativeNbv: "No",
+      stopResidualValue: "No",
+      periodLockRequired: "No",
+      allowPostingClosedPeriod: "No",
+      startRule: "From Capitalization Date",
+      convention: "Exact Date (IFRS - Daily Pro-rata)",
+    );
+  }
+
+  Future<void> loadData() async {
+    setState(() => isLoading = true);
+    try {
+      List<SystemDefault> result = await ApiService().fetchSystemDefault();
+      if (result.isNotEmpty) {
+        data = result.first;
+      } else {
+        data = createInitialData();
+      }
+      originalData = SystemDefault.fromJson(data!.toJson());
+      precisionController.text = data!.roundingPrecision.toString();
+    } catch (e) {
+      data = createInitialData();
+    }
+    setState(() => isLoading = false);
+  }
+
+  void enableEdit() {
+    setState(() => isEdit = true);
+  }
+
+  void cancelEdit() {
+    setState(() {
+      isEdit = false;
+      data = SystemDefault.fromJson(originalData!.toJson());
+      precisionController.text = data!.roundingPrecision.toString();
+    });
+  }
+
+  Future<void> handleSave() async {
+    if (data == null) return;
+    setState(() => isLoading = true);
+    try {
+      data!.roundingPrecision = (int.tryParse(precisionController.text) ?? 0);
+      if (data!.defaultId == 0) {
+        await ApiService().postSystemDefault(data!);
+      } else {
+        await ApiService().updateSystemDefault(data!.defaultId, data!);
+      }
+      originalData = SystemDefault.fromJson(data!.toJson());
+      setState(() => isEdit = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Updated successfully!")));
+      loadData();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+
+    return Form(
+      key: _formKey,
+      child: Center(
+        
+        child: Container(
+          color: Colors.white, 
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              children: [
+                const Text(
+              "System Default",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1565C0),
               ),
             ),
-            SizedBox(width: 10),
-            OutlinedButton(onPressed: () {}, child: const Text("Reset")),
-            const SizedBox(width: 10),
-            OutlinedButton(
-              onPressed: () {},
-              child: const Text("View Audit Log"),
+
+            const SizedBox(height: 12),
+
+                _buildSection(
+                  title: "Depreciation Settings",
+                  child: DepreciationSettingsPanel(
+                    data: data!,
+                    isEdit: isEdit,
+                    precisionController: precisionController,
+                    onUpdate: (updated) => setState(() => data = updated),
+                  ),
+                ),
+                _buildSection(
+                  title: "Default Depreciation Start Rule",
+                  child: DefaultStartRulePanel(
+                    startRule: data!.startRule,
+                    isEdit: isEdit,
+                    onUpdate: (val) => setState(() => data!.startRule = val),
+                  ),
+                ),
+                _buildSection(
+                  title: "Default Depreciation Convention",
+                  child: DefaultConventionPanel(
+                    convention: data!.convention,
+                    isEdit: isEdit,
+                    onUpdate: (val) => setState(() => data!.convention = val),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildActionButtons(),
+                const SizedBox(height: 20),
+              ],
             ),
-          ],
+          ),
         ),
-      ],
-    );
-  }
-}
-
-//// ================= PANEL 1 =================
-class DepreciationSettingsPanel extends StatefulWidget {
-  const DepreciationSettingsPanel({super.key});
-
-  @override
-  State<DepreciationSettingsPanel> createState() =>
-      _DepreciationSettingsPanelState();
-}
-
-class _DepreciationSettingsPanelState extends State<DepreciationSettingsPanel> {
-  String frequency = "Monthly";
-  String postingRule = "End of Month";
-  String preventNBV = "Yes";
-  String stopResidual = "Yes";
-  String periodLock = "Yes";
-  String allowClosed = "No";
-
-  @override
-  Widget build(BuildContext context) {
-    return buildCard(
-      title: "Depreciation Settings",
-      child: Column(
-        children: [
-          buildRadioRow(
-            "Depreciation Frequency",
-            ["Monthly", "Quarterly", "Annually"],
-            frequency,
-            (val) => setState(() => frequency = val!),
-          ),
-
-          buildRadioRow(
-            "Posting Date Rule",
-            ["End of Month", "Last Working Day", "Custom"],
-            postingRule,
-            (val) => setState(() => postingRule = val!),
-          ),
-
-          buildTextFieldRow("Posting Precision", "Enter decimal number"),
-
-          buildRadioRow(
-            "Prevent Negative NBV",
-            ["Yes", "No"],
-            preventNBV,
-            (val) => setState(() => preventNBV = val!),
-          ),
-
-          buildRadioRow(
-            "Stop at Residual Value",
-            ["Yes", "No"],
-            stopResidual,
-            (val) => setState(() => stopResidual = val!),
-          ),
-
-          buildRadioRow(
-            "Period Lock Required",
-            ["Yes", "No"],
-            periodLock,
-            (val) => setState(() => periodLock = val!),
-          ),
-
-          buildRadioRow(
-            "Allow Posting to Closed Period",
-            ["Yes", "No"],
-            allowClosed,
-            (val) => setState(() => allowClosed = val!),
-          ),
-        ],
       ),
     );
   }
-}
 
-//// ================= PANEL 2 =================
-class DefaultStartRulePanel extends StatefulWidget {
-  const DefaultStartRulePanel({super.key});
-
-  @override
-  State<DefaultStartRulePanel> createState() => _DefaultStartRulePanelState();
-}
-
-class _DefaultStartRulePanelState extends State<DefaultStartRulePanel> {
-  String startRule = "From Capitalization Date";
-
-  @override
-  Widget build(BuildContext context) {
-    return buildCard(
-      title: "Default Depreciation Start Rule",
-      child: Column(
-        children:
-            [
-              "From Capitalization Date",
-              "From Ready-for-Use Date",
-              "From Beginning of Next Period",
-              "From Beginning of Next Financial Year",
-            ].map((e) {
-              return RadioListTile(
-                value: e,
-                groupValue: startRule,
-                onChanged: (val) => setState(() => startRule = val!),
-                title: Text(e),
-              );
-            }).toList(),
+  Widget _buildSection({required String title, required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12), 
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!, width: 1), 
       ),
-    );
-  }
-}
-
-//// ================= PANEL 3 =================
-class DefaultConventionPanel extends StatefulWidget {
-  const DefaultConventionPanel({super.key});
-
-  @override
-  State<DefaultConventionPanel> createState() => _DefaultConventionPanelState();
-}
-
-class _DefaultConventionPanelState extends State<DefaultConventionPanel> {
-  String convention = "Exact Date (IFRS - Daily Pro-rata)";
-
-  @override
-  Widget build(BuildContext context) {
-    return buildCard(
-      title: "Default Depreciation Convention",
-      child: Column(
-        children:
-            [
-              "Exact Date (IFRS - Daily Pro-rata)",
-              "Monthly Pro-rata",
-              "Full-Year Convention - No Acquisition Year",
-              "Full-Year Convention - No Disposal Year",
-              "Half-Year Convention",
-            ].map((e) {
-              return RadioListTile(
-                value: e,
-                groupValue: convention,
-                onChanged: (val) => setState(() => convention = val!),
-                title: Text(e),
-              );
-            }).toList(),
-      ),
-    );
-  }
-}
-
-Widget buildCard({required String title, required Widget child}) {
-  return Card(
-    elevation: 3,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(
+              title,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blueGrey[800]),
+            ),
           ),
-          const Divider(height: 10),
-          child,
+          const Divider(thickness: 0.5, height: 20), 
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: child,
+          ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget buildRadioRow(
-  String label,
-  List<String> options,
-  String groupValue,
-  Function(String?) onChanged,
-) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 250,
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+  Widget _buildActionButtons() {
+    if (!isEdit) {
+      return Center(
+        child: ElevatedButton.icon(
+          onPressed: enableEdit,
+          icon: const Icon(Icons.edit, size: 18),
+          label: const Text("Edit "),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[800],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
-        Expanded(
-          child: Wrap(
-            spacing: 20,
-            runSpacing: 8,
-            children: options.map((e) {
-              return Row(
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: handleSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[800],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: const Text("Save"),
+        ),
+        const SizedBox(width: 16),
+        OutlinedButton(
+          onPressed: cancelEdit,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            side: BorderSide(color: Colors.grey[400]!),
+          ),
+          child: const Text("Cancel", style: TextStyle(color: Colors.black54)),
+        ),
+      ],
+    );
+  }
+}
+
+
+class DepreciationSettingsPanel extends StatelessWidget {
+  final SystemDefault data;
+  final bool isEdit;
+  final TextEditingController precisionController;
+  final Function(SystemDefault) onUpdate;
+
+  const DepreciationSettingsPanel({super.key, required this.data, required this.isEdit, required this.precisionController, required this.onUpdate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildRow("Frequency", ["Monthly", "Quarterly", "Annually"], data.depreciationFrequency, (v) {
+          data.depreciationFrequency = v!;
+          onUpdate(data);
+        }),
+        _buildRow("Posting Date Rule", ["End of Month", "Last Working Day", "Custom"], data.postingDateRule, (v) {
+          data.postingDateRule = v!;
+          onUpdate(data);
+        }),
+        _buildTextRow("Rounding Precision", precisionController),
+        _buildRow("Prevent Negative NBV", ["Yes", "No"], data.preventNegativeNbv, (v) {
+          data.preventNegativeNbv = v!;
+          onUpdate(data);
+        }),
+        _buildRow("Stop at Residual Value", ["Yes", "No"], data.stopResidualValue, (v) {
+          data.stopResidualValue = v!;
+          onUpdate(data);
+        }),
+        _buildRow("Period Lock Required", ["Yes", "No"], data.periodLockRequired, (v) {
+          data.periodLockRequired = v!;
+          onUpdate(data);
+        }),
+        _buildRow("Allow Posting to Closed Period", ["Yes", "No"], data.allowPostingClosedPeriod, (v) {
+          data.allowPostingClosedPeriod = v!;
+          onUpdate(data);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildRow(String label, List<String> options, String value, Function(String?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13))),
+          Expanded(
+            flex: 7,
+            child: Wrap(
+              spacing: 20,
+              children: options.map((opt) => Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Radio<String>(
-                    value: e,
-                    groupValue: groupValue,
-                    onChanged: onChanged,
+                    value: opt,
+                    groupValue: value,
+                    onChanged: isEdit ? onChanged : null,
+                    visualDensity: VisualDensity.compact,
                   ),
-                  Text(e),
+                  Text(opt, style: TextStyle(fontSize: 13, color: isEdit ? Colors.black : Colors.grey[600])),
                 ],
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget buildTextFieldRow(String label, String hint) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 250,
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-        ),
-        SizedBox(
-          width: 200,
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: hint,
-              border: const OutlineInputBorder(),
-              isDense: true,
+              )).toList(),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextRow(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(flex: 3, child: Text(label, style: const TextStyle(fontSize: 13))),
+          Expanded(
+            flex: 7,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 170,
+                child: TextField(
+                  controller: controller,
+                  enabled: isEdit,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: "Enter a decimal number",
+                    contentPadding: const EdgeInsets.all(10),
+                    border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DefaultStartRulePanel extends StatelessWidget {
+  final String startRule;
+  final bool isEdit;
+  final Function(String) onUpdate;
+
+  const DefaultStartRulePanel({super.key, required this.startRule, required this.isEdit, required this.onUpdate});
+
+  @override
+  Widget build(BuildContext context) {
+    final options = ["From Capitalization Date", "From Ready-for-Use Date", "From Beginning of Next Period", "From Beginning of Next Financial Year"];
+    return Column(
+      children: options.map((e) => RadioListTile(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        value: e,
+        groupValue: startRule,
+        onChanged: isEdit ? (val) => onUpdate(val as String) : null,
+        title: Text(e, style: const TextStyle(fontSize: 14)),
+      )).toList(),
+    );
+  }
+}
+
+class DefaultConventionPanel extends StatelessWidget {
+  final String convention;
+  final bool isEdit;
+  final Function(String) onUpdate;
+
+  const DefaultConventionPanel({super.key, required this.convention, required this.isEdit, required this.onUpdate});
+
+  @override
+  Widget build(BuildContext context) {
+    final options = ["Exact Date (IFRS - Daily Pro-rata)", "Monthly Pro-rata", "Full-Year Convention - No Acquisition Year", "Full-Year Convention - No Disposal Year", "Half-Year Convention"];
+    return Column(
+      children: options.map((e) => RadioListTile(
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        value: e,
+        groupValue: convention,
+        onChanged: isEdit ? (val) => onUpdate(val as String) : null,
+        title: Text(e, style: const TextStyle(fontSize: 14)),
+      )).toList(),
+    );
+  }
 }
