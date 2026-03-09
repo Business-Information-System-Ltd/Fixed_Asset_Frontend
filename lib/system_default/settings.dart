@@ -14,14 +14,15 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
+  String? _selectedBookLevel;
 
   final List<MenuItem> _menuItems = [
     MenuItem(title: 'System default', icon: Icons.settings),
-    MenuItem(title: 'Book asset', icon: Icons.book),
-    MenuItem(title: 'Book level', icon: Icons.layers),
-    MenuItem(title: 'Asset category depreciation', icon: Icons.category),
-    MenuItem(title: 'Depreciation convention', icon: Icons.calendar_today),
+    MenuItem(title: 'Book Setting', icon: Icons.book),
+    // MenuItem(title: 'Book level', icon: Icons.layers),
+    MenuItem(title: 'Depreciation Setting', icon: Icons.category),
   ];
+  final DepreciationNavigation depreciationNav = DepreciationNavigation();
 
   @override
   Widget build(BuildContext context) {
@@ -122,13 +123,22 @@ class _SettingsPageState extends State<SettingsPage> {
       case 0:
         return const SystemDefaultPage();
       case 1:
-        return const assetBook();
+        return AssetBookScreen(
+          onOpenBookLevel: (bookLevel) {
+            setState(() {
+              _selectedIndex = 2;
+              _selectedBookLevel = bookLevel;
+            });
+          },
+        );
       case 2:
-        return const BookLevelDepreciation();
+        return BookLevelDepreciation(
+          bookLevel: _selectedBookLevel,
+          readOnly: true,
+        );
+
       case 3:
-        return const AssetCategoryPolicyForm();
-      case 4:
-        return const DepreciationConventionForm();
+        return DepreciationSettingPage(nav: depreciationNav);
       default:
         return const SystemDefaultPage();
     }
