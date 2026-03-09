@@ -1,118 +1,6 @@
 import 'package:intl/intl.dart';
 
-// class Wip {
-//   final int id;
-//   final String wipCode;
-//   final String projectName;
-//   final DateTime startDate;
-//   final DateTime endDate;
-//   final String description;
-//   final String status;
-//   final double totalAmount;
-//   final String currency;
-//   Wip({
-//     required this.id,
-//     required this.wipCode,
-//     required this.projectName,
-//     required this.startDate,
-//     required this.endDate,
-//     required this.description,
-//     required this.status,
-//     required this.totalAmount,
-//     required this.currency,
-//   });
-//   factory Wip.fromJson(Map<String, dynamic> json) {
-//     return Wip(
-//       id: json['wip_id'] ?? '',
-//       wipCode: json['wip_code'] ?? '',
-//       projectName: json['project_name'] ?? '',
-//       startDate: DateTime.parse(json['start_date'] ?? DateTime.now()),
-//       endDate: DateTime.parse(json['end_date'] ?? DateTime.now()),
-//       description: json['description'] ?? '',
-//       status: json['status'] ?? 'progress',
-//       totalAmount: json['total_amount'] ?? 0.0,
-//       currency: json['currency'] ?? 'MMK',
-//     );
-//   }
-//   Map<String, dynamic> toJson() {
-//     return {
-//       'wip_id': id,
-//       'wip_code': wipCode,
-//       'project_name': projectName,
-//       'start_date': DateFormat('yyyy-MM-dd').format(startDate),
-//       'end_date': DateFormat('yyyy-MM-dd').format(endDate),
-//       'description': description,
-//       'status': status,
-//       'total_amount': totalAmount,
-//       'currency': currency,
-//     };
-//   }
-// }
 
-// class WipItem {
-//   final int id;
-//   final String itemCode;
-//   final String itemName;
-//   final String costType;
-//   final String description;
-//   final int quantity;
-//   final double unitCost;
-//   final double totalCost;
-//   final String currency;
-//   final DateTime transactionDate;
-//   final int wipId;
-//   final String wipCode;
-//   WipItem({
-//     required this.id,
-//     required this.itemCode,
-//     required this.itemName,
-//     required this.costType,
-//     required this.description,
-//     required this.quantity,
-//     required this.unitCost,
-//     required this.totalCost,
-//     required this.currency,
-//     required this.transactionDate,
-//     required this.wipId,
-//     required this.wipCode,
-//   });
-//   factory WipItem.fromJson(Map<String, dynamic> json) {
-//     final wipId = json['wip_id'] ?? 0;
-//     final wipCode = json['wip_code'] ?? '';
-//     return WipItem(
-//       id: json['item_id'] ?? '',
-//       itemCode: json['item_code'] ?? '',
-//       itemName: json['item_name'] ?? '',
-//       costType: json['cost_type'] ?? '',
-//       description: json['description'] ?? '',
-//       quantity: json['quantity'] ?? 0,
-//       unitCost: json['unit_cost'] ?? 0.0,
-//       totalCost: json['total_cost'] ?? 0.0,
-//       currency: json['currency'] ?? 'MMK',
-//       transactionDate: DateTime.parse(
-//         json['transaction_date'] ?? DateTime.now(),
-//       ),
-//       wipId: wipId,
-//       wipCode: wipCode,
-//     );
-//   }
-//   Map<String, dynamic> toJson() {
-//     return {
-//       'item_id': id,
-//       'item_code': itemCode,
-//       'item_name': itemName,
-//       'cost_type': costType,
-//       'description': description,
-//       'quantity': quantity,
-//       'unit_cost': unitCost,
-//       'total_cost': totalCost,
-//       'currency': currency,
-//       'transaction_date': DateFormat('yyyy-MM-dd').format(transactionDate),
-//       'wip_id': wipId,
-//       'wip_code': wipCode,
-//     };
-//   }
-// }
 
 class Wip {
   final int id;
@@ -161,28 +49,24 @@ class Wip {
   }
 
   factory Wip.fromJson(Map<String, dynamic> json) {
-    // Handle the id conversion properly
     int parseId(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
       if (value is String) {
-        // Try to parse as int
         final parsed = int.tryParse(value);
         if (parsed != null) return parsed;
 
-        // If it's a numeric string with extra characters
         final numericString = value.replaceAll(RegExp(r'[^0-9]'), '');
         return int.tryParse(numericString) ?? 0;
       }
       return 0;
     }
 
-    // Handle date parsing safely
     DateTime parseDate(dynamic dateValue) {
       if (dateValue == null) return DateTime.now();
       try {
         if (dateValue is String) {
-          return DateTime.parse(dateValue.split('T')[0]); // Handle ISO format
+          return DateTime.parse(dateValue.split('T')[0]); 
         }
         return dateValue;
       } catch (e) {
@@ -191,7 +75,6 @@ class Wip {
       }
     }
 
-    // Handle double parsing safely
     double parseDouble(dynamic value) {
       if (value == null) return 0.0;
       if (value is double) return value;
@@ -234,9 +117,9 @@ class WipItem {
   final int id;
   final String itemCode;
   final String itemName;
-  final String costType; // Should be lowercase: 'cash' or 'bank'
+  final String costType; 
   final String description;
-  final double quantity; // Changed from int to double
+  final double quantity; 
   final double unitCost;
   final double totalCost;
   final String currency;
@@ -317,14 +200,14 @@ class WipItem {
     return {
       'item_code': itemCode,
       'item_name': itemName,
-      'cost_type': costType.toLowerCase(), // Must be lowercase for Django
+      'cost_type': costType.toLowerCase(), 
       'description': description,
       'quantity': quantity,
       'unit_cost': unitCost,
       'total_cost': totalCost,
       'currency': currency,
       'transaction_date': DateFormat('yyyy-MM-dd').format(transactionDate),
-      'wip': wipId, // Key fix: Django expects 'wip' not 'wip_id'
+      'wip': wipId, 
     };
   }
 }
@@ -714,32 +597,7 @@ class User {
     };
   }
 }
-// class LoginResponse {
-//   final String message;
-//   final String userName;
-//   final String role;
-//   final int userId;
 
-//   LoginResponse({
-//     required this.message,
-//     required this.userName,
-//     required this.role,
-//     required this.userId,
-//   });
-
-//   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-//    final userData = json['user'];
-//   return LoginResponse(
-//     message: json['message'],
-//     userName: userData['name'],
-//     role: userData['role'],
-//     userId: userData['id'],
-//     email: userData['email'] ?? '',
-//     department: userData['department_name'] ?? '',
-//     authProvider: userData['auth_provider'] ?? 'local',
-//   );
-//   }
-// }
 class LoginResponse {
   final String message;
   final String userName;
@@ -760,7 +618,7 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    final userData = json['user'];
+        final Map<String, dynamic> userData = json['user'] ?? {};
     return LoginResponse(
       message: json['message'],
       userName: userData['name'] ?? '',
