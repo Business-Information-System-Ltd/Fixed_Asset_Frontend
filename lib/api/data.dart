@@ -199,6 +199,7 @@ class WipItem {
     return {
       'item_code': itemCode,
       'item_name': itemName,
+      'cost_type': costType.toLowerCase(), 
       'description': description,
       'quantity': quantity,
       'unit_cost': unitCost,
@@ -616,7 +617,7 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic> userData = json['user'] ?? {};
+        final Map<String, dynamic> userData = json['user'] ?? {};
     return LoginResponse(
       message: json['message'],
       userName: userData['name'] ?? '',
@@ -821,7 +822,166 @@ class Leases {
   }
 }
 
+//convention List
+class Convention {
+  final int id;
+  final String conventionName;
+  final bool applyProrataAcquisition;
+  final bool applyProrataDisposal;
+  final bool fullDepreInAcquisitionYear;
+  final bool noDepreInDisposalYear;
+  final bool startFromNextFinancialYear;
+  final String note;
+  Convention({
+    required this.id,
+    required this.conventionName,
+    required this.applyProrataAcquisition,
+    required this.applyProrataDisposal,
+    required this.fullDepreInAcquisitionYear,
+    required this.noDepreInDisposalYear,
+    required this.startFromNextFinancialYear,
+    required this.note,
+  });
+  factory Convention.fromJson(Map<String, dynamic> json) {
+    return Convention(
+      id: json['convention_id'] ?? 0,
+      conventionName: json['convention_name'] ?? '',
+      applyProrataAcquisition: json['apply_prorata_acquisition'] ?? false,
+      applyProrataDisposal: json['apply_prorata_disposal'] ?? false,
+      fullDepreInAcquisitionYear: json['full_depre_in_acquisition_yr'] ?? false,
+      noDepreInDisposalYear: json['no_depre_in_disposal_yr'] ?? false,
+      startFromNextFinancialYear: json['start_from_next_financial_yr'] ?? false,
+      note: json['note'] ?? '',
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'convention_id': id,
+      'convention_name': conventionName,
+      'apply_prorata_acquisition': applyProrataAcquisition,
+      'apply_prorata_disposal': applyProrataDisposal,
+      'full_depre_in_acquisition_yr': fullDepreInAcquisitionYear,
+      'no_depre_in_disposal_yr': noDepreInDisposalYear,
+      'start_from_next_financial_yr': startFromNextFinancialYear,
+      'note': note,
+    };
+  }
+}
 
+class Category {
+  final int id;
+  final String categoryCode;
+  final String name;
+  Category({required this.id, required this.categoryCode, required this.name});
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: json['category_id'] ?? 0,
+      categoryCode: json['category_code'] ?? '',
+      name: json['category_name'] ?? '',
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'category_id': id,
+      'category_code': categoryCode,
+      'category_name': name,
+    };
+  }
+}
+
+//asset Category Policy
+class AssetCategoryPolicy {
+  final int id;
+  final int bookLevelPolicyId;
+  final String bookLevelPolicyName;
+  final int categoryId;
+  final String categoryName;
+  final String depreciationFrequency;
+  final String depreciationMethod;
+  final int usefulLife;
+  final String period;
+  final double residualValue;
+  final bool useBookDefault;
+  final bool overrideConvetion;
+  final bool exactDateIFRS;
+  final bool monthlyProrata;
+  final bool fullYearNoAcquisition;
+  final bool halfYear;
+  final bool allowUsefulLifeOverride;
+  final bool allowResidualOverride;
+  final bool allowMehtodOverride;
+  final bool allowConventionOverride;
+  AssetCategoryPolicy({
+    required this.id,
+    required this.bookLevelPolicyId,
+    required this.bookLevelPolicyName,
+    required this.categoryId,
+    required this.categoryName,
+    required this.depreciationFrequency,
+    required this.depreciationMethod,
+    required this.usefulLife,
+    required this.period,
+    required this.residualValue,
+    required this.useBookDefault,
+    required this.overrideConvetion,
+    required this.exactDateIFRS,
+    required this.monthlyProrata,
+    required this.fullYearNoAcquisition,
+    required this.halfYear,
+    required this.allowUsefulLifeOverride,
+    required this.allowResidualOverride,
+    required this.allowMehtodOverride,
+    required this.allowConventionOverride,
+  });
+  factory AssetCategoryPolicy.fromJson(Map<String, dynamic> json) {
+    return AssetCategoryPolicy(
+      id: json['asset_category_policy_id'] ?? 0,
+      bookLevelPolicyId: json['book_level_policy'] ?? 0,
+      bookLevelPolicyName: json['book_level_policy_name'] ?? '',
+      categoryId: json['category'] ?? 0,
+      categoryName: json['category_name'] ?? '',
+      depreciationFrequency: json['depreciation_frequency'] ?? '',
+      depreciationMethod: json['depreciation_method'] ?? '',
+      usefulLife: json['useful_life'] ?? 0,
+      period: json['period'] ?? '',
+      residualValue: (json['residual_value'] is num)
+          ? (json['residual_value'] as num).toDouble()
+          : double.tryParse(json['residual_value']?.toString() ?? '0') ?? 0.0,
+      useBookDefault: json['use_book_default'] ?? true,
+      overrideConvetion: json['override_convention_for_category'] ?? false,
+      exactDateIFRS: json['exact_date_ifrs'] ?? false,
+      monthlyProrata: json['monthly_prorata'] ?? false,
+      fullYearNoAcquisition: json['full_yr_no_acquisition_yr'] ?? false,
+      halfYear: json['half_yr'] ?? false,
+      allowUsefulLifeOverride: json['allow_useful_life_override'] ?? false,
+      allowResidualOverride: json['allow_residual_override'] ?? false,
+      allowMehtodOverride: json['allow_method_override'] ?? false,
+      allowConventionOverride: json['allow_convention_override'] ?? false,
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'asset_category_policy_id': id,
+      'book_level_policy': bookLevelPolicyId,
+      'category': categoryId,
+      'depreciation_frequency': depreciationFrequency,
+      'depreciation_method': depreciationMethod,
+      'useful_life': usefulLife,
+      'period': period,
+      'residual_value': residualValue,
+      'use_book_default': useBookDefault,
+      'override_convention_for_category': overrideConvetion,
+      'exact_date_ifrs': exactDateIFRS,
+      'monthly_prorata': monthlyProrata,
+      'full_yr_no_acquisition_yr': fullYearNoAcquisition,
+      'half_yr': halfYear,
+      'allow_useful_life_override': allowUsefulLifeOverride,
+      'allow_residual_override': allowResidualOverride,
+      'allow_method_override': allowMehtodOverride,
+      'allow_convention_override': allowConventionOverride,
+    };
+  }
+}
 
 class SystemDefault {
   final int defaultId;
@@ -869,7 +1029,9 @@ class SystemDefault {
       preventNegativeNbv: parseBoolToString(json["prevent_negative_NBV"]),
       stopResidualValue: parseBoolToString(json["stop_at_residual_value"]),
       periodLockRequired: parseBoolToString(json["period_lock_required"]),
-      allowPostingClosedPeriod: parseBoolToString(json["allow_posting_to_closed_period"]),
+      allowPostingClosedPeriod: parseBoolToString(
+        json["allow_posting_to_closed_period"],
+      ),
       startRule: json["depreciation_start_rule"] ?? "",
       convention: json["depreciation_convention"] ?? "",
     );
@@ -906,27 +1068,25 @@ class AssetBook {
     this.createdAt,
   });
 
- 
   factory AssetBook.fromJson(Map<String, dynamic> json) => AssetBook(
-        bookId: json['book_id'],
-        bookName: json['book_name'],
-        multiBookSupport: json['multi_book_support'] ?? true,
-        isActive: json['isActive'] ?? true,
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'])
-            : null,
-      );
-
+    bookId: json['book_id'],
+    bookName: json['book_name'],
+    multiBookSupport: json['multi_book_support'] ?? true,
+    isActive: json['isActive'] ?? true,
+    createdAt: json['created_at'] != null
+        ? DateTime.parse(json['created_at'])
+        : null,
+  );
 
   Map<String, dynamic> toJson() => {
-        'book_id': bookId,
-        'book_name': bookName,
-        'multi_book_support': multiBookSupport,
-        'isActive': isActive,
-      };
+    'book_id': bookId,
+    'book_name': bookName,
+    'multi_book_support': multiBookSupport,
+    'isActive': isActive,
+  };
 }
 
-class BookPolicy{
+class BookPolicy {
   final int bookLevelPolicyId;
   final String bookLevel;
   final String? depreciationFrequency;
@@ -943,11 +1103,10 @@ class BookPolicy{
   final int defaultId;
   final int? convention;
 
-
   BookPolicy({
     required this.bookLevelPolicyId,
     required this.bookLevel,
-     this.depreciationFrequency,
+    this.depreciationFrequency,
     required this.postingDateRule,
     required this.roundingPrecision,
     required this.preventNegativeNBV,
@@ -962,55 +1121,53 @@ class BookPolicy{
     this.convention,
   });
 
- 
+  factory BookPolicy.fromJson(Map<String, dynamic> json) {
+    String parseToString(dynamic value) {
+      if (value is bool) return value ? "Yes" : "No";
+      return value?.toString() ?? "";
+    }
 
+    return BookPolicy(
+      bookLevelPolicyId: json['book_level_policy_id'],
+      bookLevel: json['book_level'],
+      depreciationFrequency: json['depreciation_frequency'],
+      postingDateRule: json['posting_date_rule'],
+      roundingPrecision: json['rounding_precision'] != null
+          ? double.parse(json['rounding_precision'].toString())
+          : null,
 
-factory BookPolicy.fromJson(Map<String, dynamic> json) {
-  String parseToString(dynamic value) {
-    if (value is bool) return value ? "Yes" : "No"; 
-    return value?.toString() ?? "";
+      preventNegativeNBV: parseToString(json['prevent_negative_NBV']),
+      stopAtResidualValue: parseToString(json['stop_at_residual_value']),
+      periodLockRequired: parseToString(json['period_lock_required']),
+      allowPostingToClosedPeriod: parseToString(
+        json['allow_posting_to_closed_period'],
+      ),
+
+      depreciationStartRule: json['depreciation_start_rule'],
+      depreciationnConvention: json['depreciation_convention'],
+      createdAt: json['created_at'],
+      book: json['book'],
+      defaultId: json['default'],
+      convention: json['convention'],
+    );
   }
-
-  return BookPolicy(
-    bookLevelPolicyId: json['book_level_policy_id'], 
-    bookLevel: json['book_level'],
-    depreciationFrequency: json['depreciation_frequency'],
-    postingDateRule: json['posting_date_rule'],
-    roundingPrecision: json['rounding_precision'] != null
-        ? double.parse(json['rounding_precision'].toString()) : null, 
-  
-    preventNegativeNBV: parseToString(json['prevent_negative_NBV']), 
-    stopAtResidualValue: parseToString(json['stop_at_residual_value']), 
-    periodLockRequired: parseToString(json['period_lock_required']), 
-    allowPostingToClosedPeriod: parseToString(json['allow_posting_to_closed_period']), 
-    
-    depreciationStartRule: json['depreciation_start_rule'], 
-    depreciationnConvention: json['depreciation_convention'], 
-    createdAt: json['created_at'], 
-    book: json['book'], 
-    defaultId: json['default'],
-    convention: json['convention']
-  );
-}
-  Map<String, dynamic> toJson(){
+  Map<String, dynamic> toJson() {
     return {
-      'book_level_policy_id':bookLevelPolicyId,
-      'book_level':bookLevel,
-      'depreciation_frequency':depreciationFrequency,
-      'posting_date_rule':postingDateRule,
-      'rounding_precision':roundingPrecision,
-      'prevent_negative_NBV':preventNegativeNBV,
-      'stop_at_residual_value':stopAtResidualValue,
-      'period_lock_required':periodLockRequired,
-      'allow_posting_to_closed_period':allowPostingToClosedPeriod,
-      'depreciation_start_rule':depreciationStartRule,
-      'depreciation_convention':depreciationnConvention,
-      'created_at':createdAt,
-      'book':book,
-      'default':defaultId,
-      'convention':convention,
-      
+      'book_level_policy_id': bookLevelPolicyId,
+      'book_level': bookLevel,
+      'depreciation_frequency': depreciationFrequency,
+      'posting_date_rule': postingDateRule,
+      'rounding_precision': roundingPrecision,
+      'prevent_negative_NBV': preventNegativeNBV,
+      'stop_at_residual_value': stopAtResidualValue,
+      'period_lock_required': periodLockRequired,
+      'allow_posting_to_closed_period': allowPostingToClosedPeriod,
+      'depreciation_start_rule': depreciationStartRule,
+      'depreciation_convention': depreciationnConvention,
+      'created_at': createdAt,
+      'book': book,
+      'default': defaultId,
+      'convention': convention,
     };
   }
-  
 }

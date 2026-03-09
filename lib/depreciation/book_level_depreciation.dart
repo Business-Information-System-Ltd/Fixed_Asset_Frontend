@@ -11,8 +11,7 @@ extension SystemDefaultToBookPolicy on SystemDefault {
       depreciationFrequency: depreciationFrequency,
       postingDateRule: postingDateRule,
       roundingPrecision: roundingPrecision.toDouble(),
-      
-      
+
       preventNegativeNBV: preventNegativeNbv,
       stopAtResidualValue: stopResidualValue,
       periodLockRequired: periodLockRequired,
@@ -119,33 +118,36 @@ class _BookLevelDepreciationState extends State<BookLevelDepreciation> {
     });
   }
 
-Future<void> _saveData() async {
-  if (currentPolicy == null || data == null) return;
+  Future<void> _saveData() async {
+    if (currentPolicy == null || data == null) return;
 
-  setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-  try {
-    final updatedPolicy = data!.toBookPolicy(currentPolicy!);
-    await ApiService().updateBookLevel(updatedPolicy.bookLevelPolicyId, updatedPolicy);
+    try {
+      final updatedPolicy = data!.toBookPolicy(currentPolicy!);
+      await ApiService().updateBookLevel(
+        updatedPolicy.bookLevelPolicyId,
+        updatedPolicy,
+      );
 
-    setState(() {
-      isEdit = false;
-      currentPolicy = updatedPolicy;
-    });
+      setState(() {
+        isEdit = false;
+        currentPolicy = updatedPolicy;
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Book Level Policy saved successfully!")),
-    );
-  } catch (e) {
-    debugPrint("Error saving data: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error saving: $e")),
-    );
-  } finally {
-    setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Book Level Policy saved successfully!")),
+      );
+    } catch (e) {
+      debugPrint("Error saving data: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error saving: $e")));
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
-}
-  
+
   void cancelEdit() {
     setState(() {
       isEdit = false;
@@ -211,7 +213,6 @@ Future<void> _saveData() async {
     );
   }
 
-  
   Widget _buildSection({required String title, required Widget child}) {
     return Container(
       width: double.infinity,
@@ -242,57 +243,59 @@ Future<void> _saveData() async {
     );
   }
 
- Widget _buildBookLevelHeader() {
-  return Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Book Level Policy',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1565C0),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            const Text(
-              "Book Level:",
-              style: TextStyle(fontWeight: FontWeight.w600),
+  Widget _buildBookLevelHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Book Level Policy',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1565C0),
             ),
-            const SizedBox(width: 20),
-            SizedBox(
-              width: 250,
-              child: TextFormField(
-                readOnly: true, 
-                initialValue: widget.bookLevel ?? "Tax Book",
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  fillColor: Colors.grey[200],
-                  filled: true,
-                ),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text(
+                "Book Level:",
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 20),
+              SizedBox(
+                width: 250,
+                child: TextFormField(
+                  readOnly: true,
+                  initialValue: widget.bookLevel ?? "Tax Book",
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    fillColor: Colors.grey[200],
+                    filled: true,
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildActionButtons() {
     if (!isEdit) {
@@ -319,7 +322,7 @@ Future<void> _saveData() async {
           // onPressed: () {
           //   _onBookLevelChanged(selectedLevel);
           // },
-          onPressed: _saveData, 
+          onPressed: _saveData,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1565C0),
             foregroundColor: Colors.white,

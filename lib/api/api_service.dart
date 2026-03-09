@@ -21,6 +21,9 @@ class ApiService {
   final String roleEndPoint = "/roles/";
   final String signupEndPoint = "/signup/";
   final String loginEndPoint = "/login/";
+  final String conventionEndpoint = "/convention-lists/";
+  final String assetCategoryPolicyEndPoint = "/asset-category-policies/";
+  final String categoryEndPoint = "/categories/";
   final String systemDefaultEndPoint = "/system-default/";
   final String assetBookEndPoint = "/asset-books/";
   final String bookLevelEndPoint = "/book-level-policies/";
@@ -638,8 +641,181 @@ class ApiService {
       return null;
     }
   }
-//system default
-  Future<List<SystemDefault>> fetchSystemDefault() async {
+
+  //convention List
+  Future<List<Convention>> fetchConvention() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + conventionEndpoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => Convention.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load conveniton");
+    }
+  }
+
+  Future<void> postConvention(Convention newConvention) async {
+    final jsonData = newConvention.toJson();
+    print("Sending convention Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + conventionEndpoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Convention Response Status: ${response.statusCode}");
+    print("API Convention Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Convention data');
+    }
+  }
+
+  //getConventionById
+  Future<Convention> getConventionById(int conventionId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl$conventionEndpoint$conventionId/'),
+      );
+
+      print('Fetching Convention by ID: $conventionId');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Convention.fromJson(data);
+      } else {
+        throw Exception(
+          'Failed to get Convention by ID. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Exception in getConvenitonById: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Convention>> getConventions() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + conventionEndpoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((json) => Convention.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load conventions');
+    }
+  }
+
+  //category
+  Future<List<Category>> fetchAssetCategory() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + categoryEndPoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => Category.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load category");
+    }
+  }
+
+  //asset category policy
+  Future<List<AssetCategoryPolicy>> fetchAssetCategoryPolicy() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + assetCategoryPolicyEndPoint),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => AssetCategoryPolicy.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load asset category policy");
+    }
+  }
+
+  Future<void> postAssetCategoryPolicy(
+    AssetCategoryPolicy newAssetCategoryPolicy,
+  ) async {
+    final jsonData = newAssetCategoryPolicy.toJson();
+    print("Sending asset category policy Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + assetCategoryPolicyEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Asset Category Policy Response Status: ${response.statusCode}");
+    print("API Asset Category Policy Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Asset Category Policy data');
+    }
+  }
+
+  //get asset category policy by id
+  Future<AssetCategoryPolicy> getAssetCategoryPolicyById(int policyId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl$assetCategoryPolicyEndPoint$policyId/'),
+      );
+
+      print('Fetching Asset Category Policy by ID: $policyId');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return AssetCategoryPolicy.fromJson(data);
+      } else {
+        throw Exception(
+          'Failed to get Asset Category Policy by ID. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Exception in getAssetCategoryPolicyById: $e');
+      rethrow;
+    }
+  }
+
+  //update asset category policy
+  Future<void> updateAssetCategoryPolicy(
+    int policyId,
+    AssetCategoryPolicy updatedPolicy,
+  ) async {
+    final jsonData = updatedPolicy.toJson();
+    print("Updating asset category policy Json: $jsonData");
+
+    final response = await http.put(
+      Uri.parse('$baseUrl$assetCategoryPolicyEndPoint$policyId/'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+
+    print(
+      "API Update Asset Category Policy Response Status: ${response.statusCode}",
+    );
+    print("API Update Asset Category Policy Response body: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update Asset Category Policy data');
+    }
+  }
+
+   Future<List<SystemDefault>> fetchSystemDefault() async {
     final response = await http.get(Uri.parse(baseUrl + systemDefaultEndPoint));
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -789,5 +965,4 @@ Future<void> deleteBookLevel(int id) async {
 }
 
 }
-
 

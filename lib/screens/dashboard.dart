@@ -3,6 +3,7 @@ import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_list.dart';
+import 'package:fixed_asset_frontend/system_default/settings.dart';
 import 'package:flutter/material.dart';
 
 class MainScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _MainScreenState extends State<MainScreen> {
     const WIPListScreen(),
     const FixedAssetListScreen(),
     const Leaselist(),
+    const SettingsPage(),
   ];
 
   // List of menu items with icons and colors
@@ -47,9 +49,15 @@ class _MainScreenState extends State<MainScreen> {
     ),
     NavigationItem(
       title: 'Lease List',
+      icon: Icons.assignment_rounded,
+      color: const Color(0xFF9C27B0),
+      description: 'Lease management',
+    ),
+    NavigationItem(
+      title: 'Settings',
       icon: Icons.settings_rounded,
       color: const Color(0xFF9C27B0),
-      description: 'App preferences and settings',
+      description: 'App settings',
     ),
   ];
 

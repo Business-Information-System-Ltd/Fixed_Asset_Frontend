@@ -200,61 +200,56 @@ class _AssetBookScreenState extends State<AssetBookScreen> {
     );
   }
 
-Widget _buildBookRow(AssetBook book, int serialNumber) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            "$serialNumber. ${book.bookName}",
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+  Widget _buildBookRow(AssetBook book, int serialNumber) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              "$serialNumber. ${book.bookName}",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings, color: Colors.blue),
-          tooltip: "Book Policy",
-          onPressed: () {
-            if (!book.isActive) {
-              
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("Inactive Book"),
-                  content: Text("${book.bookName} is inactive."),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text("OK"),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              
-              widget.onOpenBookLevel?.call(book.bookName);
-            }
-          },
-        ),
-        const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: BoxDecoration(
-            color: book.isActive ? Colors.green : Colors.grey,
-            borderRadius: BorderRadius.circular(6),
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.blue),
+            tooltip: "Book Policy",
+            onPressed: () {
+              if (!book.isActive) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Inactive Book"),
+                    content: Text("${book.bookName} is inactive."),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                widget.onOpenBookLevel?.call(book.bookName);
+              }
+            },
           ),
-          child: Text(
-            book.isActive ? "Active" : "Inactive",
-            style: const TextStyle(color: Colors.white),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: book.isActive ? Colors.green : Colors.grey,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              book.isActive ? "Active" : "Inactive",
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildActionButtons() {
     return Row(
