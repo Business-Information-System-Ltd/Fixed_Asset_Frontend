@@ -13,7 +13,7 @@ import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: SettingsPage()));
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
 }
 
 class MyApp extends StatefulWidget {
