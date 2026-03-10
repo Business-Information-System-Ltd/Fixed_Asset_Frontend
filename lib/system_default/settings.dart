@@ -44,7 +44,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
-
                 // Menu Items
                 Expanded(
                   child: ListView.builder(
