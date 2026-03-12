@@ -16,6 +16,7 @@ class SystemDefaultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+     
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(20),
         child: Center(child: DepreciationMainPanel()),

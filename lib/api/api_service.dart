@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  //  static const String baseUrl =
+  //     "http://127.0.0.1:8000/api";
   static const String baseUrl =
       "https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api";
   final String wipEndPoint = "/wips/";
@@ -920,7 +922,7 @@ Future<List<BookPolicy>> fetchBookLevel() async {
       print("Book Level Data: $data");
       return data.map((dynamic item) => BookPolicy.fromJson(item)).toList();
     } else {
-      throw Exception('Failed to load System Default data');
+      throw Exception('Failed to load Book policy data');
     }
   }
 

@@ -1,3 +1,5 @@
+
+
 import 'package:fixed_asset_frontend/depreciation/asset_depreciaiton_policy.dart';
 import 'package:fixed_asset_frontend/depreciation/book_level_depreciation.dart';
 import 'package:fixed_asset_frontend/depreciation/depreciation_convention.dart';
@@ -15,28 +17,59 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
   String? _selectedBookLevel;
+final DepreciationNavigation depreciationNav = DepreciationNavigation();
 
   final List<MenuItem> _menuItems = [
     MenuItem(title: 'System default', icon: Icons.settings),
-    MenuItem(title: 'Book Setting', icon: Icons.book),
-    // MenuItem(title: 'Book level', icon: Icons.layers),
+    MenuItem(title: 'Book asset', icon: Icons.book),
+    // Book Level is hidden
     MenuItem(title: 'Depreciation Setting', icon: Icons.category),
+    // MenuItem(title: 'Depreciation convention', icon: Icons.calendar_today),
   ];
-  final DepreciationNavigation depreciationNav = DepreciationNavigation();
+
+  int get _sidebarIndex {
+    switch (_selectedIndex) {
+      case 0: 
+        return 0;
+      case 1: 
+      case 2: 
+        return 1;
+      case 3: 
+        return 2;
+      case 4:
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
+  int _mapSidebarToContent(int sidebarIdx) {
+    switch (sidebarIdx) {
+      case 0:
+        return 0;
+      case 1:
+        return 1;
+      case 2:
+        return 3;
+      case 3:
+        return 4;
+      default:
+        return 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
-          // Side Menu Bar
+          // Sidebar
           Container(
             width: 280,
             color: Colors.grey[50],
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Container(
                   padding: const EdgeInsets.all(20),
                   child: const Text(
@@ -44,7 +77,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
-                // Menu Items
                 Expanded(
                   child: ListView.builder(
                     itemCount: _menuItems.length,
@@ -52,10 +84,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       return _buildMenuItem(
                         title: _menuItems[index].title,
                         icon: _menuItems[index].icon,
-                        isSelected: _selectedIndex == index,
+                        isSelected: _sidebarIndex == index,
                         onTap: () {
                           setState(() {
-                            _selectedIndex = index;
+                            _selectedIndex = _mapSidebarToContent(index);
                           });
                         },
                       );
@@ -66,10 +98,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
 
-          // Vertical Divider
           Container(width: 1, color: Colors.grey[300]),
 
-          // Main Content Area
+          // Content area
           Expanded(child: _buildContentPage(_selectedIndex)),
         ],
       ),
@@ -125,7 +156,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return AssetBookScreen(
           onOpenBookLevel: (bookLevel) {
             setState(() {
-              _selectedIndex = 2;
+              _selectedIndex = 2; // navigate to Book Level Policy internally
               _selectedBookLevel = bookLevel;
             });
           },
@@ -135,7 +166,6 @@ class _SettingsPageState extends State<SettingsPage> {
           bookLevel: _selectedBookLevel,
           readOnly: true,
         );
-
       case 3:
         return DepreciationSettingPage(nav: depreciationNav);
       default:

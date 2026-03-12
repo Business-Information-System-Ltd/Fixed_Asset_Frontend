@@ -1,7 +1,5 @@
 import 'package:intl/intl.dart';
 
-
-
 class Wip {
   final int id;
   final String wipCode;
@@ -66,7 +64,7 @@ class Wip {
       if (dateValue == null) return DateTime.now();
       try {
         if (dateValue is String) {
-          return DateTime.parse(dateValue.split('T')[0]); 
+          return DateTime.parse(dateValue.split('T')[0]);
         }
         return dateValue;
       } catch (e) {
@@ -117,9 +115,9 @@ class WipItem {
   final int id;
   final String itemCode;
   final String itemName;
-  final String costType; 
+  final String costType;
   final String description;
-  final double quantity; 
+  final double quantity;
   final double unitCost;
   final double totalCost;
   final String currency;
@@ -143,7 +141,6 @@ class WipItem {
   });
 
   factory WipItem.fromJson(Map<String, dynamic> json) {
-    // Helper functions for safe parsing
     int parseId(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
@@ -191,7 +188,7 @@ class WipItem {
       totalCost: parseDouble(json['total_cost']),
       currency: (json['currency']?.toString() ?? 'MMK').trim(),
       transactionDate: parseDate(json['transaction_date']),
-      wipId: parseId(json['wip'] ?? json['wip_id']), // Django uses 'wip' field
+      wipId: parseId(json['wip'] ?? json['wip_id']),
       wipCode: (json['wip_code']?.toString() ?? '').trim(),
     );
   }
@@ -200,14 +197,14 @@ class WipItem {
     return {
       'item_code': itemCode,
       'item_name': itemName,
-      'cost_type': costType.toLowerCase(), 
+      'cost_type': costType.toLowerCase(),
       'description': description,
       'quantity': quantity,
       'unit_cost': unitCost,
       'total_cost': totalCost,
       'currency': currency,
       'transaction_date': DateFormat('yyyy-MM-dd').format(transactionDate),
-      'wip': wipId, 
+      'wip': wipId,
     };
   }
 }
@@ -618,7 +615,7 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
-        final Map<String, dynamic> userData = json['user'] ?? {};
+    final Map<String, dynamic> userData = json['user'] ?? {};
     return LoginResponse(
       message: json['message'],
       userName: userData['name'] ?? '',
@@ -907,6 +904,7 @@ class AssetCategoryPolicy {
   final bool exactDateIFRS;
   final bool monthlyProrata;
   final bool fullYearNoAcquisition;
+  final bool fullYearNoDisposal;
   final bool halfYear;
   final bool allowUsefulLifeOverride;
   final bool allowResidualOverride;
@@ -928,6 +926,7 @@ class AssetCategoryPolicy {
     required this.exactDateIFRS,
     required this.monthlyProrata,
     required this.fullYearNoAcquisition,
+    required this.fullYearNoDisposal,
     required this.halfYear,
     required this.allowUsefulLifeOverride,
     required this.allowResidualOverride,
@@ -942,7 +941,7 @@ class AssetCategoryPolicy {
       categoryId: json['category'] ?? 0,
       categoryName: json['category_name'] ?? '',
       depreciationFrequency: json['depreciation_frequency'] ?? '',
-      depreciationMethod: json['depreciation_method'] ?? '',
+      depreciationMethod: json['method'] ?? '',
       usefulLife: json['useful_life'] ?? 0,
       period: json['period'] ?? '',
       residualValue: (json['residual_value'] is num)
@@ -953,6 +952,7 @@ class AssetCategoryPolicy {
       exactDateIFRS: json['exact_date_ifrs'] ?? false,
       monthlyProrata: json['monthly_prorata'] ?? false,
       fullYearNoAcquisition: json['full_yr_no_acquisition_yr'] ?? false,
+      fullYearNoDisposal: json['full_yr_no_disposal_yr'] ?? false,
       halfYear: json['half_yr'] ?? false,
       allowUsefulLifeOverride: json['allow_useful_life_override'] ?? false,
       allowResidualOverride: json['allow_residual_override'] ?? false,
@@ -966,7 +966,7 @@ class AssetCategoryPolicy {
       'book_level_policy': bookLevelPolicyId,
       'category': categoryId,
       'depreciation_frequency': depreciationFrequency,
-      'depreciation_method': depreciationMethod,
+      'method': depreciationMethod,
       'useful_life': usefulLife,
       'period': period,
       'residual_value': residualValue,
@@ -975,6 +975,7 @@ class AssetCategoryPolicy {
       'exact_date_ifrs': exactDateIFRS,
       'monthly_prorata': monthlyProrata,
       'full_yr_no_acquisition_yr': fullYearNoAcquisition,
+      'full_yr_no_disposal_yr': fullYearNoDisposal,
       'half_yr': halfYear,
       'allow_useful_life_override': allowUsefulLifeOverride,
       'allow_residual_override': allowResidualOverride,

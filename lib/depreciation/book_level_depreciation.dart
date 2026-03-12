@@ -26,7 +26,6 @@ extension SystemDefaultToBookPolicy on SystemDefault {
     );
   }
 }
-
 class BookLevelDepreciation extends StatefulWidget {
   final String? bookLevel;
   final bool readOnly;

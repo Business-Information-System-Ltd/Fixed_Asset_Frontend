@@ -1,1727 +1,8 @@
-// import 'package:fixed_asset_frontend/api/api_service.dart';
-// import 'package:fixed_asset_frontend/api/data.dart';
-// import 'package:flutter/material.dart';
-
-// class AssetCategoryPolicyForm extends StatefulWidget {
-//   const AssetCategoryPolicyForm({super.key});
-
-//   @override
-//   State<AssetCategoryPolicyForm> createState() =>
-//       _AssetCategoryPolicyFormState();
-// }
-
-// class _AssetCategoryPolicyFormState extends State<AssetCategoryPolicyForm> {
-//   final _formKey = GlobalKey<FormState>();
-//   final ApiService apiService = ApiService();
-//   late Future<List<Category>> futureCategories;
-//   // Controllers
-//   final TextEditingController _codeController = TextEditingController();
-//   final TextEditingController _usefulLifeController = TextEditingController();
-//   final TextEditingController _residualValueController =
-//       TextEditingController();
-
-//   // Dropdown values
-//   final List<String> _bookOptions = [
-//     'Default',
-//     'IFRS Book',
-//     'Tax Book',
-//     'Management Book',
-//   ];
-//   final List<String> _categoryOptions = [
-//     'Laptop',
-//     'Desktop',
-//     'Server',
-//     'Furniture',
-//     'Vehicle',
-//     'Building',
-//   ];
-
-//   String? _selectedBook;
-//   String? _selectedCategory;
-
-//   // Depreciation Method
-//   String _depreciationMethod =
-//       'Straight Line'; // 'Straight Line', 'Reducing Balance', 'Units of Prod'
-
-//   // Pro-rata Override
-//   bool _useBookDefault = true;
-//   bool _overrideConvention = false;
-
-//   // Convention options
-//   String _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
-//   final List<String> _conventionOptions = [
-//     'Exact Date (IFRS – Daily Pro-rata)',
-//     'Monthly Pro-rata',
-//     'Full-Year – No Acquisition Year',
-//     'Full-Year – No Disposal Year',
-//     'Half-Year',
-//   ];
-
-//   // Override Permissions
-//   String _usefulLifeOverride =
-//       'Yes – With Approval'; // 'Yes – With Approval', 'No'
-//   String _residualOverride = 'Yes – With Approval';
-//   String _methodOverride = 'Yes – With Approval';
-//   String _conventionOverride = 'Yes – With Approval';
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     futureCategories = apiService.fetchAssetCategory();
-//     // Set default values
-//     _selectedBook = _bookOptions.first;
-//     _selectedCategory = _categoryOptions.first;
-//     _updateProRataBasedOnBook();
-//   }
-
-//   void _updateProRataBasedOnBook() {
-//     setState(() {
-//       switch (_selectedBook) {
-//         case 'Default':
-//           _useBookDefault = true;
-//           _overrideConvention = false;
-//           break;
-//         case 'IFRS Book':
-//           _useBookDefault = false;
-//           _overrideConvention = true;
-//           _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
-//           break;
-//         case 'Tax Book':
-//           _useBookDefault = false;
-//           _overrideConvention = true;
-//           _selectedConvention = 'Full-Year – No Disposal Year';
-//           break;
-//         case 'Management Book':
-//           // User can choose, so we don't force any selection
-//           // Keep current selection or default to book default
-//           break;
-//       }
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     _codeController.dispose();
-//     _usefulLifeController.dispose();
-//     _residualValueController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(20.0),
-//         child: Center(
-//           child: Container(
-//             constraints: const BoxConstraints(maxWidth: 800, minWidth: 600),
-//             padding: const EdgeInsets.all(24.0),
-//             decoration: BoxDecoration(
-//               color: Colors.white,
-//               borderRadius: BorderRadius.circular(8.0),
-//               boxShadow: [
-//                 BoxShadow(
-//                   color: Colors.grey.withOpacity(0.1),
-//                   blurRadius: 10,
-//                   spreadRadius: 2,
-//                 ),
-//               ],
-//             ),
-//             child: Form(
-//               key: _formKey,
-//               child: Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   // Title
-//                   Center(
-//                     child: Text(
-//                       'Asset Category Depreciation Policy',
-//                       style: TextStyle(
-//                         fontSize: 24,
-//                         fontWeight: FontWeight.bold,
-//                         color: Colors.blue[800],
-//                       ),
-//                     ),
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   // Asset Category Policy Section
-//                   const Text(
-//                     'Asset Category Policy',
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-//                   ),
-
-//                   const SizedBox(height: 16),
-
-//                   // Select Book Dropdown
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: Column(
-//                           crossAxisAlignment: CrossAxisAlignment.start,
-//                           children: [
-//                             const Text(
-//                               'Select Book:',
-//                               style: TextStyle(
-//                                 fontWeight: FontWeight.bold,
-//                                 fontSize: 14,
-//                               ),
-//                             ),
-//                             const SizedBox(height: 4),
-//                             Container(
-//                               decoration: BoxDecoration(
-//                                 border: Border.all(color: Colors.grey.shade400),
-//                                 borderRadius: BorderRadius.circular(4.0),
-//                               ),
-//                               child: DropdownButtonFormField<String>(
-//                                 value: _selectedBook,
-//                                 isExpanded: true,
-//                                 decoration: const InputDecoration(
-//                                   border: InputBorder.none,
-//                                   contentPadding: EdgeInsets.symmetric(
-//                                     horizontal: 12,
-//                                     vertical: 8,
-//                                   ),
-//                                 ),
-//                                 items: _bookOptions.map((book) {
-//                                   return DropdownMenuItem(
-//                                     value: book,
-//                                     child: Text(book),
-//                                   );
-//                                 }).toList(),
-//                                 onChanged: (value) {
-//                                   setState(() {
-//                                     _selectedBook = value;
-//                                     _updateProRataBasedOnBook();
-//                                   });
-//                                 },
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                       const SizedBox(width: 20),
-//                       Expanded(
-//                         child: Column(
-//                           crossAxisAlignment: CrossAxisAlignment.start,
-//                           children: [
-//                             const Text(
-//                               'Select Category:',
-//                               style: TextStyle(
-//                                 fontWeight: FontWeight.bold,
-//                                 fontSize: 14,
-//                               ),
-//                             ),
-//                             const SizedBox(height: 4),
-//                             Container(
-//                               decoration: BoxDecoration(
-//                                 border: Border.all(color: Colors.grey.shade400),
-//                                 borderRadius: BorderRadius.circular(4.0),
-//                               ),
-//                               child: DropdownButtonFormField<String>(
-//                                 value: _selectedCategory,
-//                                 isExpanded: true,
-//                                 decoration: const InputDecoration(
-//                                   border: InputBorder.none,
-//                                   contentPadding: EdgeInsets.symmetric(
-//                                     horizontal: 12,
-//                                     vertical: 8,
-//                                   ),
-//                                 ),
-//                                 items: _categoryOptions.map((category) {
-//                                   return DropdownMenuItem(
-//                                     value: category,
-//                                     child: Text(category),
-//                                   );
-//                                 }).toList(),
-//                                 onChanged: (value) {
-//                                   setState(() {
-//                                     _selectedCategory = value;
-//                                   });
-//                                 },
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   // Default Depreciation Method (Column layout)
-//                   Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       const Text(
-//                         'Default Depreciation Method:',
-//                         style: TextStyle(
-//                           fontWeight: FontWeight.bold,
-//                           fontSize: 14,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 8),
-//                       Container(
-//                         padding: const EdgeInsets.all(12),
-//                         decoration: BoxDecoration(
-//                           border: Border.all(color: Colors.grey.shade300),
-//                           borderRadius: BorderRadius.circular(4),
-//                         ),
-//                         child: Column(
-//                           children: [
-//                             _buildMethodRadio('Straight Line'),
-//                             const Divider(),
-//                             _buildMethodRadio('Reducing Balance'),
-//                             const Divider(),
-//                             _buildMethodRadio('Units of Prod'),
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   // Default Useful Life and Residual Value
-//                   Row(
-//                     children: [
-//                       Expanded(
-//                         child: Column(
-//                           crossAxisAlignment: CrossAxisAlignment.start,
-//                           children: [
-//                             const Text(
-//                               'Default Useful Life (Months):',
-//                               style: TextStyle(
-//                                 fontWeight: FontWeight.bold,
-//                                 fontSize: 14,
-//                               ),
-//                             ),
-//                             const SizedBox(height: 4),
-//                             TextFormField(
-//                               controller: _usefulLifeController,
-//                               keyboardType: TextInputType.number,
-//                               decoration: InputDecoration(
-//                                 // hintText: '36',
-//                                 border: OutlineInputBorder(
-//                                   borderRadius: BorderRadius.circular(4.0),
-//                                 ),
-//                                 contentPadding: const EdgeInsets.symmetric(
-//                                   horizontal: 12,
-//                                   vertical: 10,
-//                                 ),
-//                               ),
-//                               validator: (value) {
-//                                 if (value == null || value.isEmpty) {
-//                                   return 'Required';
-//                                 }
-//                                 if (int.tryParse(value) == null) {
-//                                   return 'Enter a valid number';
-//                                 }
-//                                 return null;
-//                               },
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                       const SizedBox(width: 20),
-//                       Expanded(
-//                         child: Column(
-//                           crossAxisAlignment: CrossAxisAlignment.start,
-//                           children: [
-//                             const Text(
-//                               'Default Residual Value (%):',
-//                               style: TextStyle(
-//                                 fontWeight: FontWeight.bold,
-//                                 fontSize: 14,
-//                               ),
-//                             ),
-//                             const SizedBox(height: 4),
-//                             TextFormField(
-//                               controller: _residualValueController,
-//                               keyboardType:
-//                                   const TextInputType.numberWithOptions(
-//                                     decimal: true,
-//                                   ),
-//                               decoration: InputDecoration(
-//                                 hintText: '0.00',
-//                                 border: OutlineInputBorder(
-//                                   borderRadius: BorderRadius.circular(4.0),
-//                                 ),
-//                                 contentPadding: const EdgeInsets.symmetric(
-//                                   horizontal: 12,
-//                                   vertical: 10,
-//                                 ),
-//                               ),
-//                               validator: (value) {
-//                                 if (value == null || value.isEmpty) {
-//                                   return 'Required';
-//                                 }
-//                                 if (double.tryParse(value) == null) {
-//                                   return 'Enter a valid number';
-//                                 }
-//                                 return null;
-//                               },
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   // Pro-rata Override Section
-//                   Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       const Text(
-//                         'Pro-rata Override (Category):',
-//                         style: TextStyle(
-//                           fontWeight: FontWeight.bold,
-//                           fontSize: 14,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 8),
-//                       Container(
-//                         padding: const EdgeInsets.all(16),
-//                         decoration: BoxDecoration(
-//                           border: Border.all(color: Colors.grey.shade300),
-//                           borderRadius: BorderRadius.circular(4),
-//                         ),
-//                         child: Column(
-//                           children: [
-//                             // Use Book Default option
-//                             Row(
-//                               children: [
-//                                 SizedBox(
-//                                   width: 24,
-//                                   height: 24,
-//                                   child: Checkbox(
-//                                     value: _useBookDefault,
-//                                     onChanged:
-//                                         _selectedBook == 'Management Book'
-//                                         ? (value) {
-//                                             setState(() {
-//                                               _useBookDefault = value ?? false;
-//                                               _overrideConvention =
-//                                                   !_useBookDefault;
-//                                             });
-//                                           }
-//                                         : null, // Disabled for other books
-//                                     activeColor: Colors.blue[800],
-//                                   ),
-//                                 ),
-//                                 const SizedBox(width: 8),
-//                                 Text(
-//                                   'Use Book Default',
-//                                   style: TextStyle(
-//                                     color: _selectedBook == 'Management Book'
-//                                         ? Colors.black
-//                                         : Colors.grey,
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                             const Divider(),
-
-//                             // Override Convention option
-//                             Row(
-//                               children: [
-//                                 SizedBox(
-//                                   width: 24,
-//                                   height: 24,
-//                                   child: Checkbox(
-//                                     value: _overrideConvention,
-//                                     onChanged:
-//                                         _selectedBook == 'Management Book'
-//                                         ? (value) {
-//                                             setState(() {
-//                                               _overrideConvention =
-//                                                   value ?? false;
-//                                               _useBookDefault =
-//                                                   !_overrideConvention;
-//                                             });
-//                                           }
-//                                         : null, // Disabled for other books
-//                                     activeColor: Colors.blue[800],
-//                                   ),
-//                                 ),
-//                                 const SizedBox(width: 8),
-//                                 Text(
-//                                   'Override Convention for this Category',
-//                                   style: TextStyle(
-//                                     color: _selectedBook == 'Management Book'
-//                                         ? Colors.black
-//                                         : Colors.grey,
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-
-//                             if (_overrideConvention ||
-//                                 _selectedBook == 'IFRS Book' ||
-//                                 _selectedBook == 'Tax Book')
-//                               Padding(
-//                                 padding: const EdgeInsets.only(
-//                                   left: 32,
-//                                   top: 12,
-//                                 ),
-//                                 child: Column(
-//                                   children: [
-//                                     const Text('Convention:'),
-//                                     const SizedBox(height: 8),
-//                                     ..._conventionOptions.map((option) {
-//                                       bool isEnabled =
-//                                           _selectedBook == 'Management Book' ||
-//                                           (_selectedBook == 'IFRS Book' &&
-//                                               option ==
-//                                                   'Exact Date (IFRS – Daily Pro-rata)') ||
-//                                           (_selectedBook == 'Tax Book' &&
-//                                               option ==
-//                                                   'Full-Year – No Disposal Year');
-
-//                                       return RadioListTile<String>(
-//                                         title: Text(
-//                                           option,
-//                                           style: TextStyle(
-//                                             fontSize: 13,
-//                                             color: isEnabled
-//                                                 ? Colors.black
-//                                                 : Colors.grey,
-//                                           ),
-//                                         ),
-//                                         value: option,
-//                                         groupValue: isEnabled
-//                                             ? _selectedConvention
-//                                             : null,
-//                                         onChanged: isEnabled
-//                                             ? (value) {
-//                                                 setState(() {
-//                                                   _selectedConvention = value!;
-//                                                 });
-//                                               }
-//                                             : null,
-//                                         activeColor: Colors.blue[800],
-//                                         dense: true,
-//                                         contentPadding: EdgeInsets.zero,
-//                                       );
-//                                     }).toList(),
-//                                   ],
-//                                 ),
-//                               ),
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 20),
-
-//                   // Override Permission Section
-//                   Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       const Text(
-//                         'Override Permission:',
-//                         style: TextStyle(
-//                           fontWeight: FontWeight.bold,
-//                           fontSize: 14,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 8),
-//                       Container(
-//                         padding: const EdgeInsets.all(16),
-//                         decoration: BoxDecoration(
-//                           border: Border.all(color: Colors.grey.shade300),
-//                           borderRadius: BorderRadius.circular(4),
-//                         ),
-//                         child: Column(
-//                           children: [
-//                             _buildPermissionRow(
-//                               'Allow Useful Life Override:',
-//                               _usefulLifeOverride,
-//                               (value) {
-//                                 setState(() {
-//                                   _usefulLifeOverride = value;
-//                                 });
-//                               },
-//                             ),
-//                             const Divider(),
-//                             _buildPermissionRow(
-//                               'Allow Residual Override:',
-//                               _residualOverride,
-//                               (value) {
-//                                 setState(() {
-//                                   _residualOverride = value;
-//                                 });
-//                               },
-//                             ),
-//                             const Divider(),
-//                             _buildPermissionRow(
-//                               'Allow Method Override:',
-//                               _methodOverride,
-//                               (value) {
-//                                 setState(() {
-//                                   _methodOverride = value;
-//                                 });
-//                               },
-//                             ),
-//                             const Divider(),
-//                             _buildPermissionRow(
-//                               'Allow Convention Override:',
-//                               _conventionOverride,
-//                               (value) {
-//                                 setState(() {
-//                                   _conventionOverride = value;
-//                                 });
-//                               },
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 40),
-
-//                   // Save and Clear Buttons
-//                   Row(
-//                     mainAxisAlignment: MainAxisAlignment.center,
-//                     children: [
-//                       ElevatedButton(
-//                         onPressed: _saveForm,
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: Colors.blue[800],
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 40,
-//                             vertical: 12,
-//                           ),
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(4.0),
-//                           ),
-//                         ),
-//                         child: const Text(
-//                           'Save',
-//                           style: TextStyle(
-//                             color: Colors.white,
-//                             fontSize: 16,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-//                       ),
-//                       const SizedBox(width: 20),
-//                       OutlinedButton(
-//                         onPressed: _clearForm,
-//                         style: OutlinedButton.styleFrom(
-//                           padding: const EdgeInsets.symmetric(
-//                             horizontal: 40,
-//                             vertical: 12,
-//                           ),
-//                           side: BorderSide(color: Colors.blue[800]!),
-//                           shape: RoundedRectangleBorder(
-//                             borderRadius: BorderRadius.circular(4.0),
-//                           ),
-//                         ),
-//                         child: Text(
-//                           'Clear',
-//                           style: TextStyle(
-//                             color: Colors.blue[800],
-//                             fontSize: 16,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-
-//                   const SizedBox(height: 10),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildMethodRadio(String method) {
-//     return Row(
-//       children: [
-//         Radio<String>(
-//           value: method,
-//           groupValue: _depreciationMethod,
-//           onChanged: (value) {
-//             setState(() {
-//               _depreciationMethod = value!;
-//             });
-//           },
-//           activeColor: Colors.blue[800],
-//         ),
-//         const SizedBox(width: 8),
-//         Text(method),
-//       ],
-//     );
-//   }
-
-//   Widget _buildPermissionRow(
-//     String label,
-//     String groupValue,
-//     Function(String) onChanged,
-//   ) {
-//     return Row(
-//       children: [
-//         Expanded(
-//           flex: 2,
-//           child: Text(label, style: const TextStyle(fontSize: 14)),
-//         ),
-//         Expanded(
-//           flex: 1,
-//           child: Row(
-//             children: [
-//               Expanded(
-//                 child: Row(
-//                   children: [
-//                     Radio<String>(
-//                       value: 'Yes – With Approval',
-//                       groupValue: groupValue,
-//                       onChanged: (value) => onChanged(value!),
-//                       activeColor: Colors.blue[800],
-//                     ),
-//                     const Text('Yes', style: TextStyle(fontSize: 12)),
-//                   ],
-//                 ),
-//               ),
-//               Expanded(
-//                 child: Row(
-//                   children: [
-//                     Radio<String>(
-//                       value: 'No',
-//                       groupValue: groupValue,
-//                       onChanged: (value) => onChanged(value!),
-//                       activeColor: Colors.blue[800],
-//                     ),
-//                     const Text('No', style: TextStyle(fontSize: 12)),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-
-//   void _clearForm() {
-//     _formKey.currentState?.reset();
-//     setState(() {
-//       _codeController.clear();
-//       _selectedBook = _bookOptions.first;
-//       _selectedCategory = _categoryOptions.first;
-//       _depreciationMethod = 'Straight Line';
-//       _usefulLifeController.text = '';
-//       _residualValueController.text = '0.00';
-//       _usefulLifeOverride = 'Yes – With Approval';
-//       _residualOverride = 'Yes – With Approval';
-//       _methodOverride = 'Yes – With Approval';
-//       _conventionOverride = 'Yes – With Approval';
-//       _updateProRataBasedOnBook();
-//     });
-
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: const Text('Form cleared'),
-//         backgroundColor: Colors.blue[800],
-//         duration: const Duration(seconds: 2),
-//         behavior: SnackBarBehavior.floating,
-//       ),
-//     );
-//   }
-
-//   void _saveForm() {
-//     if (_formKey.currentState!.validate()) {
-//       final formData = {
-//         'code': _codeController.text,
-//         'book': _selectedBook,
-//         'category': _selectedCategory,
-//         'depreciationMethod': _depreciationMethod,
-//         'usefulLife': int.parse(_usefulLifeController.text),
-//         'residualValue': double.parse(_residualValueController.text),
-//         'useBookDefault': _useBookDefault,
-//         'overrideConvention': _overrideConvention,
-//         'selectedConvention': _selectedConvention,
-//         'usefulLifeOverride': _usefulLifeOverride,
-//         'residualOverride': _residualOverride,
-//         'methodOverride': _methodOverride,
-//         'conventionOverride': _conventionOverride,
-//       };
-
-//       print('✅ Saved data: $formData');
-
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: const Text('Asset Category Policy saved successfully!'),
-//           backgroundColor: Colors.green,
-//           duration: const Duration(seconds: 2),
-//           behavior: SnackBarBehavior.floating,
-//         ),
-//       );
-//     }
-//   }
-// }
-
-// depreciation_policy_form.dart
+// ==================== Navigation Enum and Notifier ====================
 import 'package:fixed_asset_frontend/api/api_service.dart';
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:flutter/material.dart';
 
-class AssetCategoryPolicyForm extends StatefulWidget {
-  final String? categoryName;
-  final String? bookName;
-  final AssetCategoryPolicy? policy;
-  final bool viewMode;
-  final VoidCallback? onSave;
-  final VoidCallback? onCancel;
-
-  const AssetCategoryPolicyForm({
-    super.key,
-    this.categoryName,
-    this.bookName,
-    this.policy,
-    this.viewMode = false,
-    this.onSave,
-    this.onCancel,
-  });
-
-  @override
-  State<AssetCategoryPolicyForm> createState() =>
-      _AssetCategoryPolicyFormState();
-}
-
-class _AssetCategoryPolicyFormState extends State<AssetCategoryPolicyForm> {
-  final _formKey = GlobalKey<FormState>();
-  final ApiService apiService = ApiService();
-  late Future<List<Category>> futureCategories;
-
-  // Controllers
-  final TextEditingController _usefulLifeController = TextEditingController();
-  final TextEditingController _residualValueController =
-      TextEditingController();
-
-  // Dropdown values
-  final List<String> _bookOptions = [
-    'Default',
-    'IFRS Book',
-    'Tax Book',
-    'Management Book',
-  ];
-
-  List<String> _categoryOptions = [];
-
-  String? _selectedBook;
-  String? _selectedCategory;
-
-  // Depreciation Method
-  String _depreciationMethod = 'Straight Line';
-
-  // Pro-rata Override
-  bool _useBookDefault = true;
-  bool _overrideConvention = false;
-
-  // Convention options
-  String _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
-  final List<String> _conventionOptions = [
-    'Exact Date (IFRS – Daily Pro-rata)',
-    'Monthly Pro-rata',
-    'Full-Year – No Acquisition Year',
-    'Full-Year – No Disposal Year',
-    'Half-Year',
-  ];
-
-  // Override Permissions
-  String _usefulLifeOverride = 'Yes – With Approval';
-  String _residualOverride = 'Yes – With Approval';
-  String _methodOverride = 'Yes – With Approval';
-  String _conventionOverride = 'Yes – With Approval';
-
-  // Flag values for API
-  bool _exactDateIFRS = false;
-  bool _monthlyProrata = false;
-  bool _fullYearNoAcquisition = false;
-  bool _halfYear = false;
-
-  @override
-  void initState() {
-    super.initState();
-    futureCategories = apiService.fetchAssetCategory();
-
-    // Set values from parameters
-    _selectedBook = widget.bookName ?? _bookOptions.first;
-    _selectedCategory = widget.categoryName;
-
-    // If editing/viewing existing policy, populate form
-    if (widget.policy != null) {
-      _populateFormWithPolicy();
-    }
-
-    _updateProRataBasedOnBook();
-  }
-
-  void _populateFormWithPolicy() {
-    final policy = widget.policy!;
-
-    _depreciationMethod = policy.depreciationMethod;
-    _usefulLifeController.text = policy.usefulLife.toString();
-    _residualValueController.text = policy.residualValue.toString();
-    _useBookDefault = policy.useBookDefault;
-    _overrideConvention = policy.overrideConvetion;
-
-    // Set convention flags
-    _exactDateIFRS = policy.exactDateIFRS;
-    _monthlyProrata = policy.monthlyProrata;
-    _fullYearNoAcquisition = policy.fullYearNoAcquisition;
-    _halfYear = policy.halfYear;
-
-    // Set selected convention based on flags
-    if (_exactDateIFRS)
-      _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
-    else if (_monthlyProrata)
-      _selectedConvention = 'Monthly Pro-rata';
-    else if (_fullYearNoAcquisition)
-      _selectedConvention = 'Full-Year – No Acquisition Year';
-    else if (_halfYear)
-      _selectedConvention = 'Half-Year';
-
-    // Set override permissions
-    _usefulLifeOverride = policy.allowUsefulLifeOverride
-        ? 'Yes – With Approval'
-        : 'No';
-    _residualOverride = policy.allowResidualOverride
-        ? 'Yes – With Approval'
-        : 'No';
-    _methodOverride = policy.allowMehtodOverride ? 'Yes – With Approval' : 'No';
-    _conventionOverride = policy.allowConventionOverride
-        ? 'Yes – With Approval'
-        : 'No';
-  }
-
-  void _updateProRataBasedOnBook() {
-    if (widget.viewMode) return; // Don't update in view mode
-
-    setState(() {
-      switch (_selectedBook) {
-        case 'Default':
-          _useBookDefault = true;
-          _overrideConvention = false;
-          break;
-        case 'IFRS Book':
-          _useBookDefault = false;
-          _overrideConvention = true;
-          _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
-          _exactDateIFRS = true;
-          _monthlyProrata = false;
-          _fullYearNoAcquisition = false;
-          _halfYear = false;
-          break;
-        case 'Tax Book':
-          _useBookDefault = false;
-          _overrideConvention = true;
-          _selectedConvention = 'Full-Year – No Disposal Year';
-          _exactDateIFRS = false;
-          _monthlyProrata = false;
-          _fullYearNoAcquisition = true;
-          _halfYear = false;
-          break;
-        case 'Management Book':
-          // User can choose
-          break;
-      }
-    });
-  }
-
-  void _updateConventionFlags(String convention) {
-    setState(() {
-      _exactDateIFRS = convention == 'Exact Date (IFRS – Daily Pro-rata)';
-      _monthlyProrata = convention == 'Monthly Pro-rata';
-      _fullYearNoAcquisition = convention == 'Full-Year – No Acquisition Year';
-      _halfYear = convention == 'Half-Year';
-    });
-  }
-
-  @override
-  void dispose() {
-    _usefulLifeController.dispose();
-    _residualValueController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.viewMode
-              ? 'View Policy'
-              : 'Asset Category Depreciation Policy',
-        ),
-        backgroundColor: Colors.blue[800],
-        foregroundColor: Colors.white,
-        actions: widget.viewMode
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssetCategoryPolicyForm(
-                          categoryName: widget.categoryName,
-                          bookName: widget.bookName,
-                          policy: widget.policy,
-                          viewMode: false,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ]
-            : [],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 800),
-            padding: const EdgeInsets.all(24.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Center(
-                    child: Text(
-                      widget.viewMode
-                          ? 'View Policy'
-                          : 'Asset Category Depreciation Policy',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[800],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Asset Category Policy Section
-                  const Text(
-                    'Asset Category Policy',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Select Book Dropdown
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Select Book:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade400),
-                                borderRadius: BorderRadius.circular(4.0),
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedBook,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                                items: _bookOptions.map((book) {
-                                  return DropdownMenuItem(
-                                    value: book,
-                                    child: Text(book),
-                                  );
-                                }).toList(),
-                                onChanged: widget.viewMode
-                                    ? null
-                                    : (value) {
-                                        setState(() {
-                                          _selectedBook = value;
-                                          _updateProRataBasedOnBook();
-                                        });
-                                      },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Select Category:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            FutureBuilder<List<Category>>(
-                              future: futureCategories,
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData) {
-                                  _categoryOptions = snapshot.data!
-                                      .map((c) => c.name)
-                                      .toList();
-                                }
-
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.grey.shade400,
-                                    ),
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedCategory,
-                                    isExpanded: true,
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                    ),
-                                    items: _categoryOptions.map((category) {
-                                      return DropdownMenuItem(
-                                        value: category,
-                                        child: Text(category),
-                                      );
-                                    }).toList(),
-                                    onChanged: widget.viewMode
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              _selectedCategory = value;
-                                            });
-                                          },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Default Depreciation Method
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Default Depreciation Method:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildMethodRadio('Straight Line'),
-                            const Divider(),
-                            _buildMethodRadio('Reducing Balance'),
-                            const Divider(),
-                            _buildMethodRadio('Units of Prod'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Default Useful Life and Residual Value
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Default Useful Life (Months):',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                              controller: _usefulLifeController,
-                              keyboardType: TextInputType.number,
-                              readOnly: widget.viewMode,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                filled: widget.viewMode,
-                                fillColor: Colors.grey[100],
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Required';
-                                }
-                                if (int.tryParse(value) == null) {
-                                  return 'Enter a valid number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Default Residual Value (%):',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextFormField(
-                              controller: _residualValueController,
-                              keyboardType: TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              readOnly: widget.viewMode,
-                              decoration: InputDecoration(
-                                hintText: '0.00',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                filled: widget.viewMode,
-                                fillColor: Colors.grey[100],
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Required';
-                                }
-                                if (double.tryParse(value) == null) {
-                                  return 'Enter a valid number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Pro-rata Override Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Pro-rata Override (Category):',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children: [
-                            // Use Book Default option
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: Checkbox(
-                                    value: _useBookDefault,
-                                    onChanged: widget.viewMode
-                                        ? null
-                                        : _selectedBook == 'Management Book'
-                                        ? (value) {
-                                            setState(() {
-                                              _useBookDefault = value ?? false;
-                                              _overrideConvention =
-                                                  !_useBookDefault;
-                                            });
-                                          }
-                                        : null,
-                                    activeColor: Colors.blue[800],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Use Book Default',
-                                  style: TextStyle(
-                                    color:
-                                        _selectedBook == 'Management Book' &&
-                                            !widget.viewMode
-                                        ? Colors.black
-                                        : Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(),
-
-                            // Override Convention option
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: Checkbox(
-                                    value: _overrideConvention,
-                                    onChanged: widget.viewMode
-                                        ? null
-                                        : _selectedBook == 'Management Book'
-                                        ? (value) {
-                                            setState(() {
-                                              _overrideConvention =
-                                                  value ?? false;
-                                              _useBookDefault =
-                                                  !_overrideConvention;
-                                            });
-                                          }
-                                        : null,
-                                    activeColor: Colors.blue[800],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Override Convention for this Category',
-                                  style: TextStyle(
-                                    color:
-                                        _selectedBook == 'Management Book' &&
-                                            !widget.viewMode
-                                        ? Colors.black
-                                        : Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            if (_overrideConvention ||
-                                _selectedBook == 'IFRS Book' ||
-                                _selectedBook == 'Tax Book')
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 32,
-                                  top: 12,
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text('Convention:'),
-                                    const SizedBox(height: 8),
-                                    ..._conventionOptions.map((option) {
-                                      bool isEnabled =
-                                          !widget.viewMode &&
-                                          (_selectedBook == 'Management Book' ||
-                                              (_selectedBook == 'IFRS Book' &&
-                                                  option ==
-                                                      'Exact Date (IFRS – Daily Pro-rata)') ||
-                                              (_selectedBook == 'Tax Book' &&
-                                                  option ==
-                                                      'Full-Year – No Disposal Year'));
-
-                                      return RadioListTile<String>(
-                                        title: Text(
-                                          option,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: isEnabled || widget.viewMode
-                                                ? Colors.black
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                        value: option,
-                                        groupValue: _selectedConvention,
-                                        onChanged: isEnabled
-                                            ? (value) {
-                                                setState(() {
-                                                  _selectedConvention = value!;
-                                                  _updateConventionFlags(value);
-                                                });
-                                              }
-                                            : null,
-                                        activeColor: Colors.blue[800],
-                                        dense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                      );
-                                    }).toList(),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Override Permission Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Override Permission:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildPermissionRow(
-                              'Allow Useful Life Override:',
-                              _usefulLifeOverride,
-                              (value) {
-                                setState(() {
-                                  _usefulLifeOverride = value;
-                                });
-                              },
-                            ),
-                            const Divider(),
-                            _buildPermissionRow(
-                              'Allow Residual Override:',
-                              _residualOverride,
-                              (value) {
-                                setState(() {
-                                  _residualOverride = value;
-                                });
-                              },
-                            ),
-                            const Divider(),
-                            _buildPermissionRow(
-                              'Allow Method Override:',
-                              _methodOverride,
-                              (value) {
-                                setState(() {
-                                  _methodOverride = value;
-                                });
-                              },
-                            ),
-                            const Divider(),
-                            _buildPermissionRow(
-                              'Allow Convention Override:',
-                              _conventionOverride,
-                              (value) {
-                                setState(() {
-                                  _conventionOverride = value;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Save and Clear Buttons (only show in edit mode)
-                  if (!widget.viewMode) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _saveForm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[800],
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 40,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                          ),
-                          child: const Text(
-                            'Save',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        OutlinedButton(
-                          onPressed: _clearForm,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 40,
-                              vertical: 12,
-                            ),
-                            side: BorderSide(color: Colors.blue[800]!),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                          ),
-                          child: Text(
-                            'Clear',
-                            style: TextStyle(
-                              color: Colors.blue[800],
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMethodRadio(String method) {
-    return Row(
-      children: [
-        Radio<String>(
-          value: method,
-          groupValue: _depreciationMethod,
-          onChanged: widget.viewMode
-              ? null
-              : (value) {
-                  setState(() {
-                    _depreciationMethod = value!;
-                  });
-                },
-          activeColor: Colors.blue[800],
-        ),
-        const SizedBox(width: 8),
-        Text(method),
-      ],
-    );
-  }
-
-  Widget _buildPermissionRow(
-    String label,
-    String groupValue,
-    Function(String) onChanged,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(label, style: const TextStyle(fontSize: 14)),
-        ),
-        Expanded(
-          flex: 1,
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Radio<String>(
-                      value: 'Yes – With Approval',
-                      groupValue: groupValue,
-                      onChanged: widget.viewMode
-                          ? null
-                          : (value) => onChanged(value!),
-                      activeColor: Colors.blue[800],
-                    ),
-                    const Text('Yes', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    Radio<String>(
-                      value: 'No',
-                      groupValue: groupValue,
-                      onChanged: widget.viewMode
-                          ? null
-                          : (value) => onChanged(value!),
-                      activeColor: Colors.blue[800],
-                    ),
-                    const Text('No', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _clearForm() {
-    if (widget.viewMode) return;
-
-    _formKey.currentState?.reset();
-    setState(() {
-      _selectedBook = widget.bookName ?? _bookOptions.first;
-      _selectedCategory = widget.categoryName;
-      _depreciationMethod = 'Straight Line';
-      _usefulLifeController.clear();
-      _residualValueController.text = '0.00';
-      _usefulLifeOverride = 'Yes – With Approval';
-      _residualOverride = 'Yes – With Approval';
-      _methodOverride = 'Yes – With Approval';
-      _conventionOverride = 'Yes – With Approval';
-      _updateProRataBasedOnBook();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Form cleared'),
-        backgroundColor: Colors.blue[800],
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  Future<void> _saveForm() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Find category ID from name
-        final categories = await apiService.fetchAssetCategory();
-        final selectedCategoryObj = categories.firstWhere(
-          (c) => c.name == _selectedCategory,
-        );
-
-        // Create policy object
-        final policy = AssetCategoryPolicy(
-          id: widget.policy?.id ?? 0,
-          bookLevelPolicyId:
-              0, // You'll need to get this from your book selection
-          bookLevelPolicyName: _selectedBook!,
-          categoryId: selectedCategoryObj.id,
-          categoryName: _selectedCategory!,
-          depreciationFrequency:
-              'Monthly', // You might want to add this to the form
-          depreciationMethod: _depreciationMethod,
-          usefulLife: int.parse(_usefulLifeController.text),
-          period: 'Months', // You might want to add this to the form
-          residualValue: double.parse(_residualValueController.text),
-          useBookDefault: _useBookDefault,
-          overrideConvetion: _overrideConvention,
-          exactDateIFRS: _exactDateIFRS,
-          monthlyProrata: _monthlyProrata,
-          fullYearNoAcquisition: _fullYearNoAcquisition,
-          halfYear: _halfYear,
-          allowUsefulLifeOverride: _usefulLifeOverride == 'Yes – With Approval',
-          allowResidualOverride: _residualOverride == 'Yes – With Approval',
-          allowMehtodOverride: _methodOverride == 'Yes – With Approval',
-          allowConventionOverride: _conventionOverride == 'Yes – With Approval',
-        );
-
-        if (widget.policy == null) {
-          // Create new policy
-          await apiService.postAssetCategoryPolicy(policy);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Policy created successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          // Update existing policy
-          await apiService.updateAssetCategoryPolicy(policy.id, policy);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Policy updated successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-
-        Navigator.pop(context, true); // Return true to indicate success
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-}
-
-// Main Navigation for Depreciation Policy Pages
-// depreciation_navigation.dart
 enum DepreciationPage { category, book, policy, policyForm }
 
 class DepreciationNavigation extends ChangeNotifier {
@@ -1730,8 +11,8 @@ class DepreciationNavigation extends ChangeNotifier {
   int? categoryId;
   String? categoryName;
   String? bookName;
+  int? bookLevelPolicyId;
 
-  // Form specific data
   AssetCategoryPolicy? policy;
   bool isViewMode = false;
 
@@ -1743,9 +24,10 @@ class DepreciationNavigation extends ChangeNotifier {
     notifyListeners();
   }
 
-  void openPolicy(String book) {
+  void openPolicy(String book, int bookId) {
     _resetFormData();
     bookName = book;
+    bookLevelPolicyId = bookId;
     currentPage = DepreciationPage.policy;
     notifyListeners();
   }
@@ -1754,12 +36,14 @@ class DepreciationNavigation extends ChangeNotifier {
     required int categoryId,
     required String categoryName,
     required String bookName,
+    required int bookLevelPolicyId,
     AssetCategoryPolicy? policy,
     required bool isViewMode,
   }) {
     this.categoryId = categoryId;
     this.categoryName = categoryName;
     this.bookName = bookName;
+    this.bookLevelPolicyId = bookLevelPolicyId;
     this.policy = policy;
     this.isViewMode = isViewMode;
     currentPage = DepreciationPage.policyForm;
@@ -1790,7 +74,7 @@ class DepreciationNavigation extends ChangeNotifier {
   }
 }
 
-// Depreciation Setting Page
+// ==================== Main Navigation Widget ====================
 class DepreciationSettingPage extends StatelessWidget {
   final DepreciationNavigation nav;
 
@@ -1804,22 +88,20 @@ class DepreciationSettingPage extends StatelessWidget {
         switch (nav.currentPage) {
           case DepreciationPage.category:
             return AssetCategoryListPage(nav: nav);
-
           case DepreciationPage.book:
             return BookSelectionPage(
               nav: nav,
               categoryId: nav.categoryId!,
               categoryName: nav.categoryName!,
             );
-
           case DepreciationPage.policy:
             return AssetCategoryPolicyPage(
               nav: nav,
               categoryId: nav.categoryId!,
               categoryName: nav.categoryName!,
               bookName: nav.bookName!,
+              bookLevelPolicyId: nav.bookLevelPolicyId!,
             );
-
           case DepreciationPage.policyForm:
             return _buildPolicyFormPage();
         }
@@ -1830,7 +112,6 @@ class DepreciationSettingPage extends StatelessWidget {
   Widget _buildPolicyFormPage() {
     return Column(
       children: [
-        // Custom header with back button
         Container(
           padding: const EdgeInsets.all(16),
           color: Colors.white,
@@ -1862,7 +143,6 @@ class DepreciationSettingPage extends StatelessWidget {
             ],
           ),
         ),
-        // Form
         Expanded(
           child: AssetCategoryPolicyForm(
             key: ValueKey(
@@ -1870,6 +150,7 @@ class DepreciationSettingPage extends StatelessWidget {
             ),
             categoryName: nav.categoryName,
             bookName: nav.bookName,
+            bookLevelPolicyId: nav.bookLevelPolicyId,
             policy: nav.policy,
             viewMode: nav.isViewMode,
             onSave: () {
@@ -1885,8 +166,7 @@ class DepreciationSettingPage extends StatelessWidget {
   }
 }
 
-//asset category list page
-
+// ==================== Asset Category List Page ====================
 class AssetCategoryListPage extends StatefulWidget {
   final DepreciationNavigation nav;
 
@@ -1898,7 +178,6 @@ class AssetCategoryListPage extends StatefulWidget {
 
 class _AssetCategoryListPageState extends State<AssetCategoryListPage> {
   final ApiService apiService = ApiService();
-
   late Future<List<Category>> futureCategories;
 
   @override
@@ -1919,22 +198,17 @@ class _AssetCategoryListPageState extends State<AssetCategoryListPage> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               if (snapshot.hasError) {
                 return Center(child: Text("Error: ${snapshot.error}"));
               }
-
               final categories = snapshot.data ?? [];
-
               if (categories.isEmpty) {
                 return const Center(child: Text("No Categories Found"));
               }
-
               return ListView.builder(
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
                   final category = categories[index];
-
                   return ListTile(
                     leading: const Icon(Icons.category),
                     title: Text(category.name),
@@ -1958,28 +232,39 @@ class _AssetCategoryListPageState extends State<AssetCategoryListPage> {
       padding: const EdgeInsets.all(16),
       alignment: Alignment.centerLeft,
       child: const Text(
-        "Asset Categories Derepciation Policy",
+        "Asset Categories Depreciation Policy",
         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
       ),
     );
   }
 }
 
-// Book Selection Page
-
-class BookSelectionPage extends StatelessWidget {
+// ==================== Book Selection Page ====================
+class BookSelectionPage extends StatefulWidget {
   final DepreciationNavigation nav;
   final int categoryId;
   final String categoryName;
 
-  BookSelectionPage({
+  const BookSelectionPage({
     super.key,
     required this.nav,
     required this.categoryId,
     required this.categoryName,
   });
 
-  final List<String> books = ["Tax Book", "IFRS Book", "Management Book"];
+  @override
+  State<BookSelectionPage> createState() => _BookSelectionPageState();
+}
+
+class _BookSelectionPageState extends State<BookSelectionPage> {
+  final ApiService apiService = ApiService();
+  late Future<List<BookPolicy>> futureBooks;
+
+  @override
+  void initState() {
+    super.initState();
+    futureBooks = apiService.fetchBookLevel();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1987,15 +272,59 @@ class BookSelectionPage extends StatelessWidget {
       children: [
         _buildHeader(),
         Expanded(
-          child: ListView.builder(
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                leading: const Icon(Icons.book),
-                title: Text(books[index]),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  nav.openPolicy(books[index]);
+          child: FutureBuilder<List<BookPolicy>>(
+            future: futureBooks,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text("Error: ${snapshot.error}"),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            futureBooks = apiService.fetchBookLevel();
+                          });
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              final books = snapshot.data ?? [];
+              if (books.isEmpty) {
+                return const Center(child: Text("No Books Found"));
+              }
+              return ListView.builder(
+                itemCount: books.length,
+                itemBuilder: (context, index) {
+                  final book = books[index];
+                  return ListTile(
+                    leading: const Icon(Icons.book),
+                    title: Text(book.bookLevel),
+                    subtitle: Text(
+                      'Frequency: ${book.depreciationFrequency ?? 'N/A'}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      widget.nav.openPolicy(
+                        book.bookLevel,
+                        book.bookLevelPolicyId,
+                      );
+                    },
+                  );
                 },
               );
             },
@@ -2006,27 +335,47 @@ class BookSelectionPage extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: nav.backToCategory,
-        ),
-        Text(
-          categoryName,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: widget.nav.backToCategory,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.categoryName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Select Book',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-//asset category policy page
+// ==================== Asset Category Policy Page ====================
 class AssetCategoryPolicyPage extends StatefulWidget {
   final DepreciationNavigation nav;
   final int categoryId;
   final String categoryName;
   final String bookName;
+  final int bookLevelPolicyId;
 
   const AssetCategoryPolicyPage({
     super.key,
@@ -2034,6 +383,7 @@ class AssetCategoryPolicyPage extends StatefulWidget {
     required this.categoryId,
     required this.categoryName,
     required this.bookName,
+    required this.bookLevelPolicyId,
   });
 
   @override
@@ -2069,7 +419,6 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               if (snapshot.hasError) {
                 return Center(
                   child: Column(
@@ -2091,21 +440,18 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                   ),
                 );
               }
-
               final policies = snapshot.data ?? [];
-
               final filteredPolicies = policies
                   .where(
                     (p) =>
                         p.categoryId == widget.categoryId &&
-                        p.bookLevelPolicyName == widget.bookName,
+                        p.bookLevelPolicyId == widget.bookLevelPolicyId,
                   )
                   .toList();
 
               if (filteredPolicies.isEmpty) {
                 return _buildEmptyState();
               }
-
               return _buildPolicyView(filteredPolicies.first);
             },
           ),
@@ -2193,29 +539,15 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AssetCategoryPolicyForm(
-                      categoryName: widget.categoryName,
-                      bookName: widget.bookName,
-                    ),
-                  ),
+              onPressed: () {
+                widget.nav.openPolicyForm(
+                  categoryId: widget.categoryId,
+                  categoryName: widget.categoryName,
+                  bookName: widget.bookName,
+                  bookLevelPolicyId: widget.bookLevelPolicyId,
+                  policy: null,
+                  isViewMode: false,
                 );
-
-                if (result == true) {
-                  _refreshPolicies();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Policy added successfully for ${widget.bookName}',
-                      ),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
               },
             ),
           ],
@@ -2224,13 +556,13 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
     );
   }
 
+  // ========== MODIFIED: Narrow grid and only Edit button ==========
   Widget _buildPolicyView(AssetCategoryPolicy policy) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary Card
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -2241,6 +573,7 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header
                   Row(
                     children: [
                       Container(
@@ -2281,12 +614,12 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                   ),
                   const Divider(height: 30),
 
-                  // Policy Details Grid
+                  // Narrow Grid
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 2,
-                    childAspectRatio: 2,
+                    childAspectRatio: 6.0, // Increased to make cells shorter
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                     children: [
@@ -2302,7 +635,7 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                       ),
                       _buildInfoTile(
                         'Residual Value',
-                        '${policy.residualValue}%',
+                        '${policy.residualValue}',
                         Icons.percent,
                       ),
                       _buildInfoTile(
@@ -2314,8 +647,6 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                   ),
 
                   const Divider(height: 20),
-
-                  // Convention Details
                   const Text(
                     'Convention Settings',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -2331,16 +662,15 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
                         _buildChip('Monthly Pro-rata', Colors.green),
                       if (policy.fullYearNoAcquisition)
                         _buildChip('Full Year - No Acquisition', Colors.orange),
+                      if (policy.fullYearNoDisposal)
+                        _buildChip('Full Year - No Disposal', Colors.green),
                       if (policy.halfYear)
                         _buildChip('Half Year', Colors.purple),
                       if (policy.useBookDefault)
                         _buildChip('Use Book Default', Colors.grey),
                     ],
                   ),
-
                   const Divider(height: 20),
-
-                  // Override Permissions
                   const Text(
                     'Override Permissions',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -2374,79 +704,47 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit Policy'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssetCategoryPolicyForm(
-                          categoryName: widget.categoryName,
-                          bookName: widget.bookName,
-                          policy: policy,
-                          viewMode: false,
-                        ),
-                      ),
-                    );
-
-                    if (result == true) {
-                      _refreshPolicies();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Policy updated successfully'),
-                          backgroundColor: Colors.green,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  },
+          // Only Edit button
+          Center(
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit Policy'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[800],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.visibility),
-                  label: const Text('View Details'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssetCategoryPolicyForm(
-                          categoryName: widget.categoryName,
-                          bookName: widget.bookName,
-                          policy: policy,
-                          viewMode: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              onPressed: () {
+                widget.nav.openPolicyForm(
+                  categoryId: widget.categoryId,
+                  categoryName: widget.categoryName,
+                  bookName: widget.bookName,
+                  bookLevelPolicyId: widget.bookLevelPolicyId,
+                  policy: policy,
+                  isViewMode: false,
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
+  // MODIFIED: Compact tile
   Widget _buildInfoTile(String label, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 6,
+      ), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
@@ -2458,18 +756,24 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: Colors.blue[800]),
+              Icon(icon, size: 14, color: Colors.blue[800]), // Smaller icon
               const SizedBox(width: 4),
               Text(
                 label,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ), // Smaller label
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ), // Slightly smaller value
           ),
         ],
       ),
@@ -2511,5 +815,1005 @@ class _AssetCategoryPolicyPageState extends State<AssetCategoryPolicyPage> {
         ),
       ],
     );
+  }
+}
+
+// ==================== Asset Category Policy Form ====================
+class AssetCategoryPolicyForm extends StatefulWidget {
+  final String? categoryName;
+  final String? bookName;
+  final int? bookLevelPolicyId;
+  final AssetCategoryPolicy? policy;
+  final bool viewMode;
+  final VoidCallback? onSave;
+  final VoidCallback? onCancel;
+
+  const AssetCategoryPolicyForm({
+    super.key,
+    this.categoryName,
+    this.bookName,
+    this.bookLevelPolicyId,
+    this.policy,
+    this.viewMode = false,
+    this.onSave,
+    this.onCancel,
+  });
+
+  @override
+  State<AssetCategoryPolicyForm> createState() =>
+      _AssetCategoryPolicyFormState();
+}
+
+class _AssetCategoryPolicyFormState extends State<AssetCategoryPolicyForm> {
+  final _formKey = GlobalKey<FormState>();
+  final ApiService apiService = ApiService();
+
+  Future<List<Category>>? futureCategories;
+  Future<List<BookPolicy>>? futureBookPolicies;
+
+  final TextEditingController _usefulLifeController = TextEditingController();
+  final TextEditingController _residualValueController =
+      TextEditingController();
+
+  List<BookPolicy> _bookPolicies = [];
+  List<Category> _categories = [];
+
+  BookPolicy? _selectedBookPolicy;
+  Category? _selectedCategory;
+
+  String _depreciationMethod = 'Straight Line Method';
+  final List<String> _depreciationMethods = [
+    'Straight Line Method',
+    'Reducing Balance Method',
+    'Double Declining Method',
+  ];
+
+  bool _useBookDefault = true;
+  bool _overrideConvention = false;
+
+  String _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
+  final List<String> _conventionOptions = [
+    'Exact Date (IFRS – Daily Pro-rata)',
+    'Monthly Pro-rata',
+    'Full-Year – No Acquisition Year',
+    'Full-Year – No Disposal Year',
+    'Half-Year',
+  ];
+
+  String _usefulLifeOverride = 'Yes – With Approval';
+  String _residualOverride = 'Yes – With Approval';
+  String _methodOverride = 'Yes – With Approval';
+  String _conventionOverride = 'Yes – With Approval';
+
+  bool _exactDateIFRS = false;
+  bool _monthlyProrata = false;
+  bool _fullYearNoAcquisition = false;
+  bool _fullYearNoDisposal = false;
+  bool _halfYear = false;
+
+  String _usefulLifePeriod = 'Month';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    futureCategories = apiService.fetchAssetCategory();
+    futureBookPolicies = apiService.fetchBookLevel();
+
+    _loadInitialData();
+
+    if (widget.policy != null) {
+      _populateFormWithPolicy();
+    }
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final results = await Future.wait([
+        futureBookPolicies!,
+        futureCategories!,
+      ]);
+      final books = results[0] as List<BookPolicy>;
+      final categories = results[1] as List<Category>;
+
+      if (mounted) {
+        setState(() {
+          _bookPolicies = books;
+          _categories = categories;
+          _isLoading = false;
+
+          // Pre-select book based on bookLevelPolicyId or bookName
+          if (widget.bookLevelPolicyId != null && _bookPolicies.isNotEmpty) {
+            try {
+              _selectedBookPolicy = _bookPolicies.firstWhere(
+                (b) => b.bookLevelPolicyId == widget.bookLevelPolicyId,
+              );
+            } catch (e) {
+              _selectedBookPolicy = _bookPolicies.isNotEmpty
+                  ? _bookPolicies.first
+                  : null;
+            }
+          } else if (widget.bookName != null && _bookPolicies.isNotEmpty) {
+            try {
+              _selectedBookPolicy = _bookPolicies.firstWhere(
+                (b) => b.bookLevel == widget.bookName,
+              );
+            } catch (e) {
+              _selectedBookPolicy = _bookPolicies.isNotEmpty
+                  ? _bookPolicies.first
+                  : null;
+            }
+          } else if (_bookPolicies.isNotEmpty) {
+            _selectedBookPolicy = _bookPolicies.first;
+          }
+
+          // Pre-select category based on categoryName
+          if (widget.categoryName != null && _categories.isNotEmpty) {
+            try {
+              _selectedCategory = _categories.firstWhere(
+                (c) => c.name == widget.categoryName,
+              );
+            } catch (e) {
+              _selectedCategory = _categories.isNotEmpty
+                  ? _categories.first
+                  : null;
+            }
+          } else if (_categories.isNotEmpty) {
+            _selectedCategory = _categories.first;
+          }
+
+          _updateUsefulLifePeriod();
+          if (_selectedBookPolicy != null) {
+            _updateProRataBasedOnBook();
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading initial data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _populateFormWithPolicy() {
+    final policy = widget.policy!;
+    _depreciationMethod = policy.depreciationMethod;
+    _usefulLifeController.text = policy.usefulLife.toString();
+    _residualValueController.text = policy.residualValue.toString();
+    _useBookDefault = policy.useBookDefault;
+    _overrideConvention = policy.overrideConvetion;
+    _exactDateIFRS = policy.exactDateIFRS;
+    _monthlyProrata = policy.monthlyProrata;
+    _fullYearNoAcquisition = policy.fullYearNoAcquisition;
+    _fullYearNoDisposal = policy.fullYearNoDisposal;
+    _halfYear = policy.halfYear;
+
+    if (_exactDateIFRS)
+      _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
+    else if (_monthlyProrata)
+      _selectedConvention = 'Monthly Pro-rata';
+    else if (_fullYearNoAcquisition)
+      _selectedConvention = 'Full-Year – No Acquisition Year';
+    else if (_halfYear)
+      _selectedConvention = 'Half-Year';
+
+    _usefulLifeOverride = policy.allowUsefulLifeOverride
+        ? 'Yes – With Approval'
+        : 'No';
+    _residualOverride = policy.allowResidualOverride
+        ? 'Yes – With Approval'
+        : 'No';
+    _methodOverride = policy.allowMehtodOverride ? 'Yes – With Approval' : 'No';
+    _conventionOverride = policy.allowConventionOverride
+        ? 'Yes – With Approval'
+        : 'No';
+  }
+
+  void _updateUsefulLifePeriod() {
+    if (_selectedBookPolicy != null) {
+      String? frequency = _selectedBookPolicy!.depreciationFrequency
+          ?.toLowerCase();
+      _usefulLifePeriod = (frequency == 'yearly') ? 'Year' : 'Month';
+    }
+  }
+
+  void _updateProRataBasedOnBook() {
+    if (widget.viewMode) return;
+    if (_selectedBookPolicy == null) return;
+
+    int bookPolicyId = _selectedBookPolicy!.bookLevelPolicyId;
+
+    switch (bookPolicyId) {
+      case 7: // IFRS Book
+        _useBookDefault = false;
+        _overrideConvention = true;
+        _selectedConvention = 'Exact Date (IFRS – Daily Pro-rata)';
+        _exactDateIFRS = true;
+        _monthlyProrata = false;
+        _fullYearNoAcquisition = false;
+        _fullYearNoDisposal = false;
+        _halfYear = false;
+        break;
+      case 8: // Tax Book
+        _useBookDefault = false;
+        _overrideConvention = true;
+        _selectedConvention = 'Full-Year – No Disposal Year';
+        _exactDateIFRS = false;
+        _monthlyProrata = false;
+        _fullYearNoAcquisition = false;
+        _fullYearNoDisposal = true;
+        _halfYear = false;
+        break;
+      case 9: // Management Book - user can choose
+        if (!_overrideConvention && !_useBookDefault) {
+          _useBookDefault = true;
+          _overrideConvention = false;
+        }
+        break;
+      default:
+        _useBookDefault = true;
+        _overrideConvention = false;
+        break;
+    }
+    _updateUsefulLifePeriod();
+  }
+
+  void _updateConventionFlags(String convention) {
+    setState(() {
+      _exactDateIFRS = convention == 'Exact Date (IFRS – Daily Pro-rata)';
+      _monthlyProrata = convention == 'Monthly Pro-rata';
+      _fullYearNoAcquisition = convention == 'Full-Year – No Acquisition Year';
+      _fullYearNoDisposal = convention == 'Full-Year – No Disposal Year';
+      _halfYear = convention == 'Half-Year';
+    });
+  }
+
+  bool _isCheckboxEnabled() {
+    if (widget.viewMode) return false;
+    if (_selectedBookPolicy == null) return false;
+    return _selectedBookPolicy!.bookLevelPolicyId == 9; // Only Management Book
+  }
+
+  bool _isConventionEnabled(String option) {
+    if (widget.viewMode) return false;
+    if (_selectedBookPolicy == null) return false;
+    int id = _selectedBookPolicy!.bookLevelPolicyId;
+    if (id == 7) return option == 'Exact Date (IFRS – Daily Pro-rata)';
+    if (id == 8) return option == 'Full-Year – No Disposal Year';
+    if (id == 9) return true;
+    return false;
+  }
+
+  @override
+  void dispose() {
+    _usefulLifeController.dispose();
+    _residualValueController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  padding: const EdgeInsets.all(24.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            widget.viewMode
+                                ? 'View Policy'
+                                : 'Asset Category Depreciation Policy',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[800],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Asset Category Policy',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Select Book:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    child: DropdownButtonFormField<BookPolicy>(
+                                      value: _selectedBookPolicy,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      items: _bookPolicies.map((book) {
+                                        return DropdownMenuItem(
+                                          value: book,
+                                          child: Text(book.bookLevel),
+                                        );
+                                      }).toList(),
+                                      onChanged: widget.viewMode
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                _selectedBookPolicy = value;
+                                                _updateProRataBasedOnBook();
+                                              });
+                                            },
+                                      validator: (value) => value == null
+                                          ? 'Please select a book'
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Select Category:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    child: DropdownButtonFormField<Category>(
+                                      value: _selectedCategory,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      items: _categories.map((category) {
+                                        return DropdownMenuItem(
+                                          value: category,
+                                          child: Text(category.name),
+                                        );
+                                      }).toList(),
+                                      onChanged: widget.viewMode
+                                          ? null
+                                          : (value) {
+                                              setState(
+                                                () => _selectedCategory = value,
+                                              );
+                                            },
+                                      validator: (value) => value == null
+                                          ? 'Please select a category'
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Default Depreciation Method:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Column(
+                                children: _depreciationMethods.map((method) {
+                                  return Column(
+                                    children: [
+                                      if (method != _depreciationMethods.first)
+                                        const Divider(),
+                                      _buildMethodRadio(method),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Default Useful Life ($_usefulLifePeriod):',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  TextFormField(
+                                    controller: _usefulLifeController,
+                                    keyboardType: TextInputType.number,
+                                    readOnly: widget.viewMode,
+                                    decoration: InputDecoration(
+                                      hintText: 'Enter useful life',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          4.0,
+                                        ),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                      filled: widget.viewMode,
+                                      fillColor: Colors.grey[100],
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty)
+                                        return 'Required';
+                                      if (int.tryParse(value) == null)
+                                        return 'Enter a valid number';
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Default Residual Value:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  TextFormField(
+                                    controller: _residualValueController,
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    readOnly: widget.viewMode,
+                                    decoration: InputDecoration(
+                                      hintText: '0.00',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          4.0,
+                                        ),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                      filled: widget.viewMode,
+                                      fillColor: Colors.grey[100],
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty)
+                                        return 'Required';
+                                      if (double.tryParse(value) == null)
+                                        return 'Enter a valid number';
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Pro-rata Override (Category):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: Checkbox(
+                                          value: _useBookDefault,
+                                          onChanged: _isCheckboxEnabled()
+                                              ? (value) {
+                                                  setState(() {
+                                                    _useBookDefault =
+                                                        value ?? false;
+                                                    _overrideConvention =
+                                                        !_useBookDefault;
+                                                  });
+                                                }
+                                              : null,
+                                          activeColor: Colors.blue[800],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Use Book Default',
+                                        style: TextStyle(
+                                          color: _isCheckboxEnabled()
+                                              ? Colors.black
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(),
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: Checkbox(
+                                          value: _overrideConvention,
+                                          onChanged: _isCheckboxEnabled()
+                                              ? (value) {
+                                                  setState(() {
+                                                    _overrideConvention =
+                                                        value ?? false;
+                                                    _useBookDefault =
+                                                        !_overrideConvention;
+                                                  });
+                                                }
+                                              : null,
+                                          activeColor: Colors.blue[800],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Override Convention for this Category',
+                                        style: TextStyle(
+                                          color: _isCheckboxEnabled()
+                                              ? Colors.black
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_overrideConvention ||
+                                      (_selectedBookPolicy != null &&
+                                          (_selectedBookPolicy!
+                                                      .bookLevelPolicyId ==
+                                                  7 ||
+                                              _selectedBookPolicy!
+                                                      .bookLevelPolicyId ==
+                                                  8)))
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 32,
+                                        top: 12,
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          const Text('Convention:'),
+                                          const SizedBox(height: 8),
+                                          ..._conventionOptions.map((option) {
+                                            bool isEnabled =
+                                                !widget.viewMode &&
+                                                _isConventionEnabled(option);
+                                            return RadioListTile<String>(
+                                              title: Text(
+                                                option,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color:
+                                                      isEnabled ||
+                                                          widget.viewMode
+                                                      ? Colors.black
+                                                      : Colors.grey,
+                                                ),
+                                              ),
+                                              value: option,
+                                              groupValue: _selectedConvention,
+                                              onChanged: isEnabled
+                                                  ? (value) {
+                                                      setState(() {
+                                                        _selectedConvention =
+                                                            value!;
+                                                        _updateConventionFlags(
+                                                          value,
+                                                        );
+                                                      });
+                                                    }
+                                                  : null,
+                                              activeColor: Colors.blue[800],
+                                              dense: true,
+                                              contentPadding: EdgeInsets.zero,
+                                            );
+                                          }).toList(),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Override Permission:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildPermissionRow(
+                                    'Allow Useful Life Override:',
+                                    _usefulLifeOverride,
+                                    (value) {
+                                      setState(
+                                        () => _usefulLifeOverride = value,
+                                      );
+                                    },
+                                  ),
+                                  const Divider(),
+                                  _buildPermissionRow(
+                                    'Allow Residual Override:',
+                                    _residualOverride,
+                                    (value) {
+                                      setState(() => _residualOverride = value);
+                                    },
+                                  ),
+                                  const Divider(),
+                                  _buildPermissionRow(
+                                    'Allow Method Override:',
+                                    _methodOverride,
+                                    (value) {
+                                      setState(() => _methodOverride = value);
+                                    },
+                                  ),
+                                  const Divider(),
+                                  _buildPermissionRow(
+                                    'Allow Convention Override:',
+                                    _conventionOverride,
+                                    (value) {
+                                      setState(
+                                        () => _conventionOverride = value,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                        if (!widget.viewMode) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _saveForm,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[800],
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 40,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Save',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              OutlinedButton(
+                                onPressed: _clearForm,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 40,
+                                    vertical: 12,
+                                  ),
+                                  side: BorderSide(color: Colors.blue[800]!),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Clear',
+                                  style: TextStyle(
+                                    color: Colors.blue[800],
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildMethodRadio(String method) {
+    return Row(
+      children: [
+        Radio<String>(
+          value: method,
+          groupValue: _depreciationMethod,
+          onChanged: widget.viewMode
+              ? null
+              : (value) => setState(() => _depreciationMethod = value!),
+          activeColor: Colors.blue[800],
+        ),
+        const SizedBox(width: 8),
+        Text(method),
+      ],
+    );
+  }
+
+  Widget _buildPermissionRow(
+    String label,
+    String groupValue,
+    Function(String) onChanged,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(label, style: const TextStyle(fontSize: 14)),
+        ),
+        Expanded(
+          flex: 1,
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Yes – With Approval',
+                      groupValue: groupValue,
+                      onChanged: widget.viewMode
+                          ? null
+                          : (value) => onChanged(value!),
+                      activeColor: Colors.blue[800],
+                    ),
+                    const Text('Yes', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Radio<String>(
+                      value: 'No',
+                      groupValue: groupValue,
+                      onChanged: widget.viewMode
+                          ? null
+                          : (value) => onChanged(value!),
+                      activeColor: Colors.blue[800],
+                    ),
+                    const Text('No', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _clearForm() {
+    if (widget.viewMode) return;
+    _formKey.currentState?.reset();
+    setState(() {
+      _selectedBookPolicy = _bookPolicies.isNotEmpty
+          ? _bookPolicies.first
+          : null;
+      _selectedCategory = _categories.isNotEmpty ? _categories.first : null;
+      _depreciationMethod = 'Straight Line Method';
+      _usefulLifeController.clear();
+      _residualValueController.text = '0.00';
+      _usefulLifeOverride = 'Yes – With Approval';
+      _residualOverride = 'Yes – With Approval';
+      _methodOverride = 'Yes – With Approval';
+      _conventionOverride = 'Yes – With Approval';
+      _updateProRataBasedOnBook();
+      _updateUsefulLifePeriod();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Form cleared'),
+        backgroundColor: Colors.blue[800],
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _saveForm() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        if (_selectedBookPolicy == null || _selectedCategory == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select both book and category'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        String depreciationFrequency =
+            _selectedBookPolicy!.depreciationFrequency ?? 'Monthly';
+        String period = depreciationFrequency.toLowerCase() == 'yearly'
+            ? 'Year'
+            : 'Month';
+
+        final policy = AssetCategoryPolicy(
+          id: widget.policy?.id ?? 0,
+          bookLevelPolicyId: _selectedBookPolicy!.bookLevelPolicyId,
+          bookLevelPolicyName: _selectedBookPolicy!.bookLevel,
+          categoryId: _selectedCategory!.id,
+          categoryName: _selectedCategory!.name,
+          depreciationFrequency: depreciationFrequency,
+          depreciationMethod: _depreciationMethod,
+          usefulLife: int.parse(_usefulLifeController.text),
+          period: period,
+          residualValue: double.parse(_residualValueController.text),
+          useBookDefault: _useBookDefault,
+          overrideConvetion: _overrideConvention,
+          exactDateIFRS: _exactDateIFRS,
+          monthlyProrata: _monthlyProrata,
+          fullYearNoAcquisition: _fullYearNoAcquisition,
+          fullYearNoDisposal: _fullYearNoDisposal,
+          halfYear: _halfYear,
+          allowUsefulLifeOverride: _usefulLifeOverride == 'Yes – With Approval',
+          allowResidualOverride: _residualOverride == 'Yes – With Approval',
+          allowMehtodOverride: _methodOverride == 'Yes – With Approval',
+          allowConventionOverride: _conventionOverride == 'Yes – With Approval',
+        );
+
+        if (widget.policy == null) {
+          await apiService.postAssetCategoryPolicy(policy);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Policy created successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          await apiService.updateAssetCategoryPolicy(policy.id, policy);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Policy updated successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 }
