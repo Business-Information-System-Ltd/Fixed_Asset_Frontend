@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 bool _isLoading = false;
 
@@ -28,37 +27,38 @@ class AuthService {
   final AadOAuth oauth = AadOAuth(config);
 
   Future<void> loginWithMicrosoft(BuildContext context) async {
-  try {
+    try {
+      await oauth.login();
 
-    await oauth.login();
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+      }
 
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-    }
+      String? idToken = await oauth.getIdToken();
 
-    String? idToken = await oauth.getIdToken();
-
-    if (idToken != null) {
-      await sendTokenToBackend(idToken, context);
-    } else {
-      if (context.mounted) Navigator.pop(context);
-    }
-  } catch (e) {
-    debugPrint("Login Error: $e");
-    if (context.mounted) {
-
-      Navigator.of(context, rootNavigator: true).pop();
+      if (idToken != null) {
+        await sendTokenToBackend(idToken, context);
+      } else {
+        if (context.mounted) Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint("Login Error: $e");
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
     }
   }
-}
 
   Future<void> sendTokenToBackend(String token, BuildContext context) async {
     final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/microsoft-login/'),
+      Uri.parse(
+        'https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/microsoft-login/',
+      ),
       headers: {"Content-Type": "application/json"},
       body: {'token': token},
     );
@@ -70,7 +70,9 @@ class AuthService {
       if (context.mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) =>  MainScreen(userData:loginResult)),
+          MaterialPageRoute(
+            builder: (context) => MainScreen(userData: loginResult),
+          ),
           (route) => false,
         );
       }
@@ -80,5 +82,3 @@ class AuthService {
     }
   }
 }
-
-

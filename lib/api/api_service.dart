@@ -27,6 +27,8 @@ class ApiService {
   final String systemDefaultEndPoint = "/system-default/";
   final String assetBookEndPoint = "/asset-books/";
   final String bookLevelEndPoint = "/book-level-policies/";
+  final String leaseLiabilityContractEndPoint = "/leases-contracts/";
+  final String leaseLiabilityFinanceEndPoint = "/leases-financials/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -815,7 +817,7 @@ class ApiService {
     }
   }
 
-   Future<List<SystemDefault>> fetchSystemDefault() async {
+  Future<List<SystemDefault>> fetchSystemDefault() async {
     final response = await http.get(Uri.parse(baseUrl + systemDefaultEndPoint));
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -842,29 +844,30 @@ class ApiService {
       throw Exception('Failed to post System Default data');
     }
   }
+
   Future<void> updateSystemDefault(int id, SystemDefault systemDefault) async {
-  final response = await http.put(
-    Uri.parse('$baseUrl$systemDefaultEndPoint$id/'), 
-    headers: {'Content-Type': 'application/json; charset=UTF-8'},
-    body: json.encode(systemDefault.toJson()),
-  );
+    final response = await http.put(
+      Uri.parse('$baseUrl$systemDefaultEndPoint$id/'),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: json.encode(systemDefault.toJson()),
+    );
 
-  if (response.statusCode != 200) {
-    throw Exception('Failed to update System Default');
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update System Default');
+    }
   }
-}
 
-Future<void> deleteSystemDefault(int id) async {
-  final response = await http.delete(
-    Uri.parse('$baseUrl$systemDefaultEndPoint$id/'),
-  );
+  Future<void> deleteSystemDefault(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$systemDefaultEndPoint$id/'),
+    );
 
-  if (response.statusCode != 200 && response.statusCode != 204) {
-    throw Exception('Failed to delete System Default');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete System Default');
+    }
   }
-}
 
-//Asset Book
+  //Asset Book
   Future<List<AssetBook>> fetchAssetBook() async {
     final response = await http.get(Uri.parse(baseUrl + assetBookEndPoint));
     if (response.statusCode == 200) {
@@ -892,30 +895,31 @@ Future<void> deleteSystemDefault(int id) async {
       throw Exception('Failed to post Asset Book data');
     }
   }
+
   Future<void> updateAssetBook(int id, AssetBook assetBook) async {
-  final response = await http.put(
-    Uri.parse('$baseUrl$assetBookEndPoint$id/'), 
-    headers: {'Content-Type': 'application/json; charset=UTF-8'},
-    body: json.encode(assetBook.toJson()),
-  );
+    final response = await http.put(
+      Uri.parse('$baseUrl$assetBookEndPoint$id/'),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: json.encode(assetBook.toJson()),
+    );
 
-  if (response.statusCode != 200) {
-    throw Exception('Failed to update Asset Book');
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update Asset Book');
+    }
   }
-}
 
-Future<void> deleteAssetBook(int id) async {
-  final response = await http.delete(
-    Uri.parse('$baseUrl$assetBookEndPoint$id/'),
-  );
+  Future<void> deleteAssetBook(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$assetBookEndPoint$id/'),
+    );
 
-  if (response.statusCode != 200 && response.statusCode != 204) {
-    throw Exception('Failed to delete System Default');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete System Default');
+    }
   }
-}
 
-//Book Level
-Future<List<BookPolicy>> fetchBookLevel() async {
+  //Book Level
+  Future<List<BookPolicy>> fetchBookLevel() async {
     final response = await http.get(Uri.parse(baseUrl + bookLevelEndPoint));
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -942,27 +946,77 @@ Future<List<BookPolicy>> fetchBookLevel() async {
       throw Exception('Failed to post Book Level data');
     }
   }
+
   Future<void> updateBookLevel(int id, BookPolicy bookpolicy) async {
-  final response = await http.put(
-    Uri.parse('$baseUrl$bookLevelEndPoint$id/'), 
-    headers: {'Content-Type': 'application/json; charset=UTF-8'},
-    body: json.encode(bookpolicy.toJson()),
-  );
+    final response = await http.put(
+      Uri.parse('$baseUrl$bookLevelEndPoint$id/'),
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: json.encode(bookpolicy.toJson()),
+    );
 
-  if (response.statusCode != 200) {
-    throw Exception('Failed to update Book Level');
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update Book Level');
+    }
+  }
+
+  Future<void> deleteBookLevel(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$bookLevelEndPoint$id/'),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete Book Level');
+    }
+  }
+
+  //lease List
+  Future<List<Lease>> fetchLease() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + leaseLiabilityContractEndPoint),
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+
+      List<Lease> leases = data.map((item) => Lease.fromJson(item)).toList();
+
+      return leases;
+    } else {
+      throw Exception('Failed to load Lease data');
+    }
+  }
+  //post lease
+  Future<void> postLease(Lease newLease) async {
+    final jsonData = newLease.toJson();
+    print("Sending lease Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + leaseLiabilityContractEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Lease Response Status: ${response.statusCode}");
+    print("API Lease Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Lease data');
+    }
+  }
+  //lease financial List
+  Future<List<Financial>> fetchLeaseFinancial() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + leaseLiabilityFinanceEndPoint),
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+
+      List<Financial> leaseFinancials =
+          data.map((item) => Financial.fromJson(item)).toList();
+
+      return leaseFinancials;
+    } else {
+      throw Exception('Failed to load Lease Financial data');
+    }
   }
 }
-
-Future<void> deleteBookLevel(int id) async {
-  final response = await http.delete(
-    Uri.parse('$baseUrl$bookLevelEndPoint$id/'),
-  );
-
-  if (response.statusCode != 200 && response.statusCode != 204) {
-    throw Exception('Failed to delete Book Level');
-  }
-}
-
-}
-

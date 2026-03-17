@@ -1,5 +1,6 @@
 import 'package:fixed_asset_frontend/depreciation/asset_depreciaiton_policy.dart';
 import 'package:fixed_asset_frontend/depreciation/depreciation_convention.dart';
+import 'package:fixed_asset_frontend/leaseScreen/leaseEntry.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
@@ -11,9 +12,17 @@ import 'package:fixed_asset_frontend/system_default/settings.dart';
 import 'package:fixed_asset_frontend/userInformation/login.dart';
 import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:flutter/material.dart';
+import 'package:fixed_asset_frontend/widgets/microsoftAuthService.dart'
+    as microsoft;
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: LoginScreen()));
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      navigatorKey: microsoft.navigatorKey,
+      home: LoginScreen(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
