@@ -27,6 +27,8 @@ class ApiService {
   final String systemDefaultEndPoint = "/system-default/";
   final String assetBookEndPoint = "/asset-books/";
   final String bookLevelEndPoint = "/book-level-policies/";
+  final String leaseLiabilityContractEndPoint = "/leases-contracts/";
+  final String leaseLiabilityFinanceEndPoint = "/leases-financials/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -963,6 +965,41 @@ Future<void> deleteBookLevel(int id) async {
     throw Exception('Failed to delete Book Level');
   }
 }
+
+Future<List<Lease>> fetchLease() async {
+  final response =
+      await http.get(Uri.parse(baseUrl + leaseLiabilityContractEndPoint));
+
+  if (response.statusCode == 200) {
+    List<dynamic> data = jsonDecode(response.body);
+
+    List<Lease> leases =
+        data.map((item) => Lease.fromJson(item)).toList();
+
+    return leases;
+  } else {
+    throw Exception('Failed to load Lease data');
+  }
+}
+
+  // Future<void> postLease(Financial newFinancial) async {
+  //   final jsonData = newFinancial.toJson();
+  //   print("Sending Finalcial Json: $jsonData");
+  //   final response = await http.post(
+  //     Uri.parse(baseUrl + leaseLiabilityContractEndPoint),
+  //     headers: <String, String>{
+  //       'Content-Type': 'application/json; charset=UTF-8',
+  //     },
+  //     body: json.encode(jsonData),
+  //   );
+  //   print("API Book Level Response Status: ${response.statusCode}");
+  //   print("API Book Level Response body: ${response.body}");
+  //   if (response.statusCode != 201) {
+  //     throw Exception('Failed to post Book Level data');
+  //   }
+  // }
+
+ 
 
 }
 
