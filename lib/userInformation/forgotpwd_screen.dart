@@ -24,7 +24,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Future<void> sendResetLink() async {
     setState(() => isLoading = true);
 
-    final url = Uri.parse("http://127.0.0.1:8000/api/forgot-password/"); 
+    final url = Uri.parse("https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/forgot-password/"); 
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

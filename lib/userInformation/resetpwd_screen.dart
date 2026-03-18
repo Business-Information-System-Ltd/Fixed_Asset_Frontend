@@ -45,7 +45,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     setState(() => isLoading = true);
 
-    final url = Uri.parse("http://127.0.0.1:8000/api/reset-password/");
+    final url = Uri.parse("https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/reset-password/");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
