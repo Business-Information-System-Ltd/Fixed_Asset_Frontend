@@ -6,6 +6,7 @@ class CustomTextfield extends StatelessWidget {
   final bool obscure;
   final IconData? suffixIcon;
   final VoidCallback? onSuffixTap;
+  final String? Function(String?)? validator;
 
   const CustomTextfield({
     super.key,
@@ -14,12 +15,14 @@ class CustomTextfield extends StatelessWidget {
     this.obscure = false,
     this.suffixIcon,
     this.onSuffixTap,
+    this.validator,
   });
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      
       decoration: InputDecoration(
         hintText: hint,
         contentPadding: const EdgeInsets.symmetric(

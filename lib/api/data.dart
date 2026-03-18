@@ -603,6 +603,7 @@ class LoginResponse {
   final String email;
   final String department;
   final String authProvider;
+  final String token;
 
   LoginResponse({
     required this.message,
@@ -612,6 +613,7 @@ class LoginResponse {
     required this.email,
     required this.department,
     required this.authProvider,
+    required this.token,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -624,6 +626,7 @@ class LoginResponse {
       email: userData['email'] ?? '',
       department: userData['department_name'] ?? '',
       authProvider: userData['auth_provider'] ?? 'local',
+      token: json['access'] ?? json['token'] ?? '',
     );
   }
 }
@@ -904,6 +907,7 @@ class AssetCategoryPolicy {
   final bool exactDateIFRS;
   final bool monthlyProrata;
   final bool fullYearNoAcquisition;
+  final bool fullYearNoDisposal;
   final bool halfYear;
   final bool allowUsefulLifeOverride;
   final bool allowResidualOverride;
@@ -925,6 +929,7 @@ class AssetCategoryPolicy {
     required this.exactDateIFRS,
     required this.monthlyProrata,
     required this.fullYearNoAcquisition,
+    required this.fullYearNoDisposal,
     required this.halfYear,
     required this.allowUsefulLifeOverride,
     required this.allowResidualOverride,
@@ -939,7 +944,7 @@ class AssetCategoryPolicy {
       categoryId: json['category'] ?? 0,
       categoryName: json['category_name'] ?? '',
       depreciationFrequency: json['depreciation_frequency'] ?? '',
-      depreciationMethod: json['depreciation_method'] ?? '',
+      depreciationMethod: json['method'] ?? '',
       usefulLife: json['useful_life'] ?? 0,
       period: json['period'] ?? '',
       residualValue: (json['residual_value'] is num)
@@ -950,6 +955,7 @@ class AssetCategoryPolicy {
       exactDateIFRS: json['exact_date_ifrs'] ?? false,
       monthlyProrata: json['monthly_prorata'] ?? false,
       fullYearNoAcquisition: json['full_yr_no_acquisition_yr'] ?? false,
+      fullYearNoDisposal: json['full_yr_no_disposal_yr'] ?? false,
       halfYear: json['half_yr'] ?? false,
       allowUsefulLifeOverride: json['allow_useful_life_override'] ?? false,
       allowResidualOverride: json['allow_residual_override'] ?? false,
@@ -963,7 +969,7 @@ class AssetCategoryPolicy {
       'book_level_policy': bookLevelPolicyId,
       'category': categoryId,
       'depreciation_frequency': depreciationFrequency,
-      'depreciation_method': depreciationMethod,
+      'method': depreciationMethod,
       'useful_life': usefulLife,
       'period': period,
       'residual_value': residualValue,
@@ -972,6 +978,7 @@ class AssetCategoryPolicy {
       'exact_date_ifrs': exactDateIFRS,
       'monthly_prorata': monthlyProrata,
       'full_yr_no_acquisition_yr': fullYearNoAcquisition,
+      'full_yr_no_disposal_yr': fullYearNoDisposal,
       'half_yr': halfYear,
       'allow_useful_life_override': allowUsefulLifeOverride,
       'allow_residual_override': allowResidualOverride,
@@ -1170,10 +1177,7 @@ class BookPolicy {
   }
 }
 
-
-
- 
-
+//Leases
 class Lease {
   final int id;
   final String code;
@@ -1224,6 +1228,23 @@ class Lease {
       financial: Financial.fromJson(json['financial']),
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': code,
+      'lease_type': leaseType,
+      'description': description,
+      'leasor_name': leasorName,
+      'contract_date': contractDate,
+      'phone_no': phoneNo,
+      'email': email,
+      'location': location,
+      'commencement_date': commencementDate,
+      'expiry_date': expiryDate,
+      'status': status,
+      'financial': financial.toJson(),
+    };
+  }
 
   factory Lease.empty() {
     return Lease(
@@ -1243,8 +1264,7 @@ class Lease {
     );
   }
 
- 
- DateTime _parseDate(String? dateStr) {
+  DateTime _parseDate(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty || dateStr == "null") {
       return DateTime(1970, 1, 1);
     }
@@ -1257,7 +1277,7 @@ class Lease {
     }
   }
 
-  
+  // ✅ Safe getters
   DateTime getContractDate() {
     return _parseDate(contractDate);
   }
@@ -1269,7 +1289,6 @@ class Lease {
   DateTime getEndDate() {
     return _parseDate(financial.endDate);
   }
-
 }
 
 class Financial {
@@ -1322,61 +1341,97 @@ class Financial {
   });
 
   factory Financial.fromJson(Map<String, dynamic>? json) {
-  if (json == null) return Financial.empty();
+    if (json == null) return Financial.empty();
 
-  return Financial(
-    id: json['id'] ?? 0,
-    contractAmount: double.tryParse(json['contract_amount']?.toString() ?? '') ?? 0.0,
-    deposit: double.tryParse(json['deposit']?.toString() ?? '') ?? 0.0,
-    downpayment: double.tryParse(json['down_payment']?.toString() ?? '') ?? 0.0,
-    otherCost: double.tryParse(json['other_cost']?.toString() ?? '') ?? 0.0,
-    dismantlingCost: double.tryParse(json['dismantling_cost']?.toString() ?? '') ?? 0.0,
-    leaseTerm: double.tryParse(json['lease_term']?.toString() ?? '') ?? 0.0,
-leasePeriod: json['lease_period']?.toString() ?? '',    presentValue: double.tryParse(json['present_value']?.toString() ?? '') ?? 0.0,
-    discountRate: (json['discount_rate']?.toDouble()) ?? 0.0,
-    exchangeRate: double.tryParse(json['exchange_rate']?.toString() ?? '') ?? 0.0,
-    paymentFrequency: double.tryParse(json['payment_frequency']?.toString() ?? '') ?? 0.0,
-    paymentPeriod: json['payment_period'] ?? '',
-    computation: json['computation'] ?? '',
-    currency: json['currency'] ?? 'MMK',
-    homeCurrency: json['home_currency'] ?? 'MMK',
-    reason: json['reason'] ?? '',
-    changingAmount: double.tryParse(json['changing_amount']?.toString() ?? '') ?? 0.0,
-    changingDate: json['changing_date'] ?? '',
-    startDate: json['start_date'] ?? '',  
-    endDate: json['end_date'] ?? '',
-    amortizationSchedule: (json['amortization_schedule'] as List? ?? [])
-        .map((e) => AmortizationSchedule.fromJson(e))
-        .toList(),
-  );
-}
+    return Financial(
+      id: json['id'] ?? 0,
+      contractAmount:
+          double.tryParse(json['contract_amount']?.toString() ?? '') ?? 0.0,
+      deposit: double.tryParse(json['deposit']?.toString() ?? '') ?? 0.0,
+      downpayment:
+          double.tryParse(json['down_payment']?.toString() ?? '') ?? 0.0,
+      otherCost: double.tryParse(json['other_cost']?.toString() ?? '') ?? 0.0,
+      dismantlingCost:
+          double.tryParse(json['dismantling_cost']?.toString() ?? '') ?? 0.0,
+      leaseTerm: double.tryParse(json['lease_term']?.toString() ?? '') ?? 0.0,
+      leasePeriod: json['lease_period']?.toString() ?? '',
+      presentValue:
+          double.tryParse(json['present_value']?.toString() ?? '') ?? 0.0,
+      discountRate: (json['discount_rate']?.toDouble()) ?? 0.0,
+      exchangeRate:
+          double.tryParse(json['exchange_rate']?.toString() ?? '') ?? 0.0,
+      paymentFrequency:
+          double.tryParse(json['payment_frequency']?.toString() ?? '') ?? 0.0,
+      paymentPeriod: json['payment_period'] ?? '',
+      computation: json['computation'] ?? '',
+      currency: json['currency'] ?? 'MMK',
+      homeCurrency: json['home_currency'] ?? 'MMK',
+      reason: json['reason'] ?? '',
+      changingAmount:
+          double.tryParse(json['changing_amount']?.toString() ?? '') ?? 0.0,
+      changingDate: json['changing_date'] ?? '',
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      amortizationSchedule: (json['amortization_schedule'] as List? ?? [])
+          .map((e) => AmortizationSchedule.fromJson(e))
+          .toList(),
+    );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'contract_amount': contractAmount,
+      'deposit': deposit,
+      'down_payment': downpayment,
+      'other_cost': otherCost,
+      'dismantling_cost': dismantlingCost,
+      'lease_term': leaseTerm,
+      'lease_period': leasePeriod,
+      'present_value': presentValue,
+      'discount_rate': discountRate,
+      'exchange_rate': exchangeRate,
+      'payment_frequency': paymentFrequency,
+      'payment_period': paymentPeriod,
+      'computation': computation,
+      'currency': currency,
+      'home_currency': homeCurrency,
+      'reason': reason,
+      'changing_date': changingDate,
+      'changing_amount': changingAmount,
+      'start_date': startDate,
+      'end_date': endDate,
+      'amortization_schedule': amortizationSchedule
+          .map((e) => e.toJson())
+          .toList(),
+    };
+  }
 
   factory Financial.empty() {
-  return Financial(
-    id: 0,
-    contractAmount: 0.0,
-    deposit: 0.0,
-    downpayment: 0.0,
-    otherCost: 0.0,
-    dismantlingCost: 0.0,
-    leaseTerm: 0.0,
-    leasePeriod: '',
-    presentValue: 0.0,
-    discountRate: 0.0,
-    exchangeRate: 0.0,
-    paymentFrequency: 0.0,
-    paymentPeriod: '',
-    computation: '',
-    currency: 'MMK',
-    homeCurrency: 'MMK',
-    reason: '',
-    changingAmount: 0.0,
-    changingDate: '',
-    startDate: '',
-    endDate: '',
-    amortizationSchedule: [],
-  );
-}
+    return Financial(
+      id: 0,
+      contractAmount: 0.0,
+      deposit: 0.0,
+      downpayment: 0.0,
+      otherCost: 0.0,
+      dismantlingCost: 0.0,
+      leaseTerm: 0.0,
+      leasePeriod: '',
+      presentValue: 0.0,
+      discountRate: 0.0,
+      exchangeRate: 0.0,
+      paymentFrequency: 0.0,
+      paymentPeriod: '',
+      computation: '',
+      currency: 'MMK',
+      homeCurrency: 'MMK',
+      reason: '',
+      changingAmount: 0.0,
+      changingDate: '',
+      startDate: '',
+      endDate: '',
+      amortizationSchedule: [],
+    );
+  }
 
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
@@ -1387,15 +1442,43 @@ leasePeriod: json['lease_period']?.toString() ?? '',    presentValue: double.try
   }
 }
 
+// class PresentValueEntry {
+//   final int period;
+  
+//   final double payment;
+//   final double discountFactor;
+//   final double presentValue;
+
+//   PresentValueEntry({
+//     required this.period,
+//     required this.payment,
+//     required this.discountFactor,
+//     required this.presentValue,
+//   });
+
+//   factory PresentValueEntry.fromJson(Map<String, dynamic> json) {
+//     return PresentValueEntry(
+//       period: json['period'],
+//       payment: (json['payment'] as num).toDouble(),
+//       discountFactor: json.containsKey('discount_factor')
+//           ? (json['discount_factor'] as num).toDouble()
+//           : 1.0, // default 1.0 if API doesn't provide
+//       presentValue: (json['principal'] as num).toDouble(),
+//     );
+//   }
+// }
+
 
 class PresentValueEntry {
   final int period;
+  final String date;
   final double payment;
   final double discountFactor;
   final double presentValue;
 
   PresentValueEntry({
     required this.period,
+    required this.date,
     required this.payment,
     required this.discountFactor,
     required this.presentValue,
@@ -1403,17 +1486,37 @@ class PresentValueEntry {
 
   factory PresentValueEntry.fromJson(Map<String, dynamic> json) {
     return PresentValueEntry(
-      period: json['period'],
-      payment: (json['payment'] as num).toDouble(),
-      discountFactor: json.containsKey('discount_factor')
-          ? (json['discount_factor'] as num).toDouble()
-          : 1.0, // default 1.0 if API doesn't provide
-      presentValue: (json['principal'] as num).toDouble(),
+      period: json['period'] ?? 0,
+      date: json['date'] ?? '', // safe fallback
+      payment: (json['payment'] as num?)?.toDouble() ?? 0.0,
+      discountFactor: (json['discount_factor'] as num?)?.toDouble() ?? 1.0,
+      presentValue: (json['principal'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'period': period,
+      'date': date,
+      'payment': payment,
+      'discount_factor': discountFactor,
+      'principal': presentValue,
+    };
+  }
+
+  /// 🔥 Copy with date (used when merging)
+  PresentValueEntry copyWith({
+    String? date,
+  }) {
+    return PresentValueEntry(
+      period: period,
+      date: date ?? this.date,
+      payment: payment,
+      discountFactor: discountFactor,
+      presentValue: presentValue,
     );
   }
 }
-
-
 class AmortizationSchedule {
   final int period;
   final String date;
@@ -1436,7 +1539,7 @@ class AmortizationSchedule {
   factory AmortizationSchedule.fromJson(Map<String, dynamic> json) {
     return AmortizationSchedule(
       period: json['period'],
-      date: json['date'],
+      date: json['date'] ?? '-',
       openingBalance: (json['opening_balance'] as num).toDouble(),
       payment: (json['payment'] as num).toDouble(),
       interest: (json['interest'] as num).toDouble(),
@@ -1444,8 +1547,17 @@ class AmortizationSchedule {
       closingBalance: (json['closing_balance'] as num).toDouble(),
     );
   }
-
-
+  Map<String, dynamic> toJson() {
+    return {
+      'period': period,
+      'date': date,
+      'opening_balance': openingBalance,
+      'payment': payment,
+      'interest': interest,
+      'principal': principal,
+      'closing_balance': closingBalance,
+    };
+  }
 
   double get openingLeaseLiability => openingBalance;
 
@@ -1462,4 +1574,20 @@ class AmortizationSchedule {
   double get shortTermLease => principal;
 
   double get longTermLease => closingBalance;
+}
+List<PresentValueEntry> mergePresentValueWithAmortization({
+  required List<PresentValueEntry> pvList,
+  required List<AmortizationSchedule> amortList,
+}) {
+  /// Create quick lookup map
+  final Map<int, String> periodDateMap = {
+    for (var a in amortList) a.period: a.date,
+  };
+
+  /// Merge
+  return pvList.map((pv) {
+    return pv.copyWith(
+      date: periodDateMap[pv.period] ?? '-', // fallback safe
+    );
+  }).toList();
 }

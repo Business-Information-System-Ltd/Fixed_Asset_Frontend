@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:fixed_asset_frontend/api/api_service.dart';
 import 'package:fixed_asset_frontend/api/data.dart';
+import 'package:fixed_asset_frontend/leaseScreen/leaseEntry.dart';
 import 'package:fixed_asset_frontend/screens/search_function.dart';
 import 'package:fixed_asset_frontend/screens/date_filter.dart';
 import 'package:fixed_asset_frontend/screens/pagination.dart';
@@ -107,6 +108,7 @@ class _LeaselistState extends State<Leaselist> {
 
       return PresentValueEntry(
         period: item.period,
+        date: item.date,
         payment: item.payment,
         discountFactor: double.parse(discountFactor.toStringAsFixed(6)),
         presentValue: double.parse(presentValue.toStringAsFixed(2)),
@@ -116,6 +118,11 @@ class _LeaselistState extends State<Leaselist> {
 
   void _showPresentValueDialog(Lease lease) {
     final pvEntries = generatePresentValue(lease);
+    final amortizationSchedules = lease.financial.amortizationSchedule;
+     final mergedList = mergePresentValueWithAmortization(
+    pvList: pvEntries,
+    amortList: amortizationSchedules,
+  );
     final totalPV = pvEntries.fold(
       0.0,
       (sum, entry) => sum + entry.presentValue,
@@ -127,7 +134,7 @@ class _LeaselistState extends State<Leaselist> {
       builder: (BuildContext context) {
         return Dialog(
           insetPadding: const EdgeInsets.all(10),
-          child: _buildPresentValueDialog(lease, pvEntries, totalPV),
+          child: _buildPresentValueDialog(lease, mergedList, totalPV),
         );
       },
     );
@@ -375,7 +382,7 @@ class _LeaselistState extends State<Leaselist> {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        entry.period.toString(),
+                                        entry.date.toString(),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -439,7 +446,7 @@ class _LeaselistState extends State<Leaselist> {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        '${_getCurrencySymbol(lease.financial.currency)}${NumberFormat('#,##0.00').format(double.tryParse(lease.financial.presentValue.toString()) ?? 0.0)}',
+                                        '${_getCurrencySymbol(lease.financial.currency)} ${NumberFormat('#,##0.00').format(double.tryParse(lease.financial.presentValue.toString()) ?? 0.0)}',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13,
@@ -617,11 +624,11 @@ class _LeaselistState extends State<Leaselist> {
     );
 
     final columnWidths = {
-      'period': 70.0,
-      'opening_liability': 180.0,
+      'period': 90.0,
+      'opening_liability': 170.0,
       'interest': 130.0,
       'lease_payment': 150.0,
-      'closing_liability': 180.0,
+      'closing_liability': 170.0,
       'opening_rou': 180.0,
       'depreciation': 130.0,
       'closing_rou': 150.0,
@@ -1020,7 +1027,7 @@ class _LeaselistState extends State<Leaselist> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          entry.period.toString(),
+                                          entry.date.toString(),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 13,
@@ -2409,82 +2416,81 @@ class _LeaselistState extends State<Leaselist> {
           width: isSmallScreen ? 90 : 110,
         ),
       if (!isSmallScreen)
-       PlutoColumn(
-  title: 'Lease Term',
-  field: 'lease_term',
-  readOnly: true,
-  enableEditingMode: false,
-  textAlign: PlutoColumnTextAlign.right,
-  type: PlutoColumnType.text(),
-  width: isSmallScreen ? 100 : 150,
-  renderer: (rendererContext) {
-    final termRaw = rendererContext.row.cells['lease_term']?.value;
-    final periodRaw = rendererContext.row.cells['lease_period']?.value;
+        PlutoColumn(
+          title: 'Lease Term',
+          field: 'lease_term',
+          readOnly: true,
+          enableEditingMode: false,
+          textAlign: PlutoColumnTextAlign.right,
+          type: PlutoColumnType.text(),
+          width: isSmallScreen ? 100 : 150,
+          renderer: (rendererContext) {
+            final termRaw = rendererContext.row.cells['lease_term']?.value;
+            final periodRaw = rendererContext.row.cells['lease_period']?.value;
 
-    int termValue = 0;
-    if (termRaw is num) {
-      termValue = termRaw.toInt();
-    } else {
-      termValue = int.tryParse(termRaw.toString()) ?? 0;
-    }
+            int termValue = 0;
+            if (termRaw is num) {
+              termValue = termRaw.toInt();
+            } else {
+              termValue = int.tryParse(termRaw.toString()) ?? 0;
+            }
 
-    String periodText = "";
-    String p = periodRaw.toString();
+            String periodText = "";
+            String p = periodRaw.toString();
 
-    switch (p) {
-      case "0":
-        periodText = "Year(s)";
-        break;
-      case "1":
-        periodText = "Month(s)";
-        break;
-      case "2":
-        periodText = "Day(s)";
-        break;
-      default:
-        periodText = p.isNotEmpty ? "${p}(s)" : ""; 
-    }
+            switch (p) {
+              case "0":
+                periodText = "Year(s)";
+                break;
+              case "1":
+                periodText = "Month(s)";
+                break;
+              case "2":
+                periodText = "Day(s)";
+                break;
+              default:
+                periodText = p.isNotEmpty ? "${p}(s)" : "";
+            }
 
-    return Text(
-      '$termValue $periodText',
-      textAlign: TextAlign.right,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.blue[800],
-        fontSize: isSmallScreen ? 12 : 14,
+            return Text(
+              '$termValue $periodText',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[800],
+                fontSize: isSmallScreen ? 12 : 14,
+              ),
+            );
+          },
+        ),
+      PlutoColumn(
+        title: 'Contract Amount',
+        field: 'contract_amount',
+        readOnly: true,
+        enableEditingMode: false,
+        type: PlutoColumnType.number(),
+        width: isSmallScreen ? 140 : 180,
+        textAlign: PlutoColumnTextAlign.right,
+        titleTextAlign: PlutoColumnTextAlign.right,
+        renderer: (rendererContext) {
+          final row = rendererContext.row;
+
+          final amount = row.cells['contract_amount']?.value ?? 0.0;
+          final currency = row.cells['currency']?.value ?? '';
+
+          final formattedAmount = NumberFormat('#,##0.00').format(amount);
+
+          return Text(
+            '$formattedAmount $currency',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[800],
+              fontSize: isSmallScreen ? 12 : 14,
+            ),
+          );
+        },
       ),
-    );
-  },
-),
-     PlutoColumn(
-  title: 'Contract Amount',
-  field: 'contract_amount',
-  readOnly: true,
-  enableEditingMode: false,
-  type: PlutoColumnType.number(),
-  width: isSmallScreen ? 140 : 180,
-  textAlign: PlutoColumnTextAlign.right,
-  titleTextAlign: PlutoColumnTextAlign.right,
-  renderer: (rendererContext) {
-    final row = rendererContext.row;
-    
-    final amount = row.cells['contract_amount']?.value ?? 0.0;
-    final currency = row.cells['currency']?.value ?? '';
-
-    
-    final formattedAmount = NumberFormat('#,##0.00').format(amount);
-
-    return Text(
-      '$formattedAmount $currency', 
-      textAlign: TextAlign.end,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.blue[800], 
-        fontSize: isSmallScreen ? 12 : 14,
-      ),
-    );
-  },
-),
 
       PlutoColumn(
         title: 'Status',
@@ -2723,7 +2729,16 @@ class _LeaselistState extends State<Leaselist> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LeaseEntryForm(),
+                            ),
+                          ).then((_) {
+                            _loadLeases();
+                          });
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[800],
                           padding: const EdgeInsets.symmetric(
@@ -3031,27 +3046,26 @@ class _LeaselistState extends State<Leaselist> {
     }
   }
 
+  String _formatLeaseTerm(double term, String period) {
+    int termValue = term.toInt();
+    String periodText;
 
-String _formatLeaseTerm(double term, String period) {
-  int termValue = term.toInt();
-  String periodText;
+    switch (period.toLowerCase()) {
+      case "year":
+        periodText = "Year(s)";
+        break;
+      case "month":
+        periodText = "Month(s)";
+        break;
+      case "day":
+        periodText = "Day(s)";
+        break;
+      default:
+        periodText = period;
+    }
 
-  switch (period.toLowerCase()) {
-    case "year":
-      periodText = "Year(s)";
-      break;
-    case "month":
-      periodText = "Month(s)";
-      break;
-    case "day":
-      periodText = "Day(s)";
-      break;
-    default:
-      periodText = period; 
+    return "$termValue $periodText";
   }
-
-  return "$termValue $periodText";
-}
 
   Widget _buildLeaseDetails() {
     if (selectedLeaseId == null) return Container();
@@ -3060,15 +3074,13 @@ String _formatLeaseTerm(double term, String period) {
 
     return Container(
       padding: const EdgeInsets.all(24),
-      color: const Color(0xFFF8F9FD), 
+      color: const Color(0xFFF8F9FD),
       child: SingleChildScrollView(
         child: Column(
           children: [
-            
             _buildTopRing(lease),
             const SizedBox(height: 12),
 
-           
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3098,7 +3110,7 @@ String _formatLeaseTerm(double term, String period) {
                           'End Date:',
                           DateFormat('yyyy-MM-dd').format(lease.getEndDate()),
                         ),
-                        
+
                         _buildInfoRow(
                           'Lease Term:',
                           _formatLeaseTerm(
@@ -3160,7 +3172,7 @@ String _formatLeaseTerm(double term, String period) {
                         ),
                       ]),
                       const SizedBox(height: 10),
-                       _buildGlassCard('Currency Information', [
+                      _buildGlassCard('Currency Information', [
                         _buildInfoRow(
                           'Transaction Currency:',
                           lease.financial.currency,
@@ -3174,7 +3186,6 @@ String _formatLeaseTerm(double term, String period) {
                           lease.financial.exchangeRate.toStringAsFixed(4),
                         ),
                       ]),
-                      
                     ],
                   ),
                 ),
@@ -3183,7 +3194,7 @@ String _formatLeaseTerm(double term, String period) {
                 Expanded(
                   child: Column(
                     children: [
-                       _buildGlassCard('Payment Details', [
+                      _buildGlassCard('Payment Details', [
                         _buildInfoRow(
                           'Payment Amount:',
                           _formatCurrency(
@@ -3209,7 +3220,6 @@ String _formatLeaseTerm(double term, String period) {
                           lease.financial.changingDate != "1970-01-01" &&
                           lease.financial.changingAmount > 0) ...[
                         _buildGlassCard('Change Information', [
-                         
                           _buildInfoRow(
                             'Changing Date:',
                             DateFormat(
@@ -3226,14 +3236,12 @@ String _formatLeaseTerm(double term, String period) {
                         ]),
                         const SizedBox(height: 10),
                       ],
-                      
+
                       _buildGlassCard('Actions', [
                         const SizedBox(height: 8),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment
-                              .start,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                        
                             _buildActionBtn(
                               'Payment Schedule',
                               Icons.access_time_filled,
@@ -3241,10 +3249,8 @@ String _formatLeaseTerm(double term, String period) {
                               () => _showLeaseSchedule(lease),
                             ),
 
-                            const SizedBox(
-                              width: 12,
-                            ), 
-                            
+                            const SizedBox(width: 12),
+
                             _buildActionBtn(
                               'Present Value',
                               Icons.calculate,
@@ -3289,11 +3295,10 @@ String _formatLeaseTerm(double term, String period) {
             color: Color.fromARGB(255, 21, 101, 192),
           ),
         ),
-        const SizedBox(width: 16), 
-        _buildStatusBadge(lease.status), 
+        const SizedBox(width: 16),
+        _buildStatusBadge(lease.status),
         const Spacer(),
 
-      
         IconButton(
           onPressed: () => setState(() => showLeaseDetails = false),
           icon: const Icon(Icons.close, color: Color.fromARGB(255, 69, 68, 68)),
@@ -3303,62 +3308,61 @@ String _formatLeaseTerm(double term, String period) {
   }
 
   Widget _buildStatusBadge(String status) {
-  final s = status.toLowerCase();
+    final s = status.toLowerCase();
 
-  Color bgColor;
-  switch (s) {
-    case 'active':
-      bgColor = const Color(0xFFE8F5E9); 
-      break;
-    case 'completed':
-      bgColor = const Color(0xFFE3F2FD); 
-      break;
-    case 'amendment':
-      bgColor = const Color(0xFFFFF3E0); 
-      break;
-    case 'cancelled':
-      bgColor = const Color(0xFFFFEBEE); 
-      break;
-    default:
-      bgColor = Colors.grey[100]!;
-  }
+    Color bgColor;
+    switch (s) {
+      case 'active':
+        bgColor = const Color(0xFFE8F5E9);
+        break;
+      case 'completed':
+        bgColor = const Color(0xFFE3F2FD);
+        break;
+      case 'amendment':
+        bgColor = const Color(0xFFFFF3E0);
+        break;
+      case 'cancelled':
+        bgColor = const Color(0xFFFFEBEE);
+        break;
+      default:
+        bgColor = Colors.grey[100]!;
+    }
 
+    Color mainColor;
+    switch (s) {
+      case 'active':
+        mainColor = Colors.green[700]!;
+        break;
+      case 'completed':
+        mainColor = Colors.blue[700]!;
+        break;
+      case 'amendment':
+        mainColor = Colors.orange[700]!;
+        break;
+      case 'cancelled':
+        mainColor = Colors.red[700]!;
+        break;
+      default:
+        mainColor = Colors.grey[700]!;
+    }
 
-  Color mainColor;
-  switch (s) {
-    case 'active':
-      mainColor = Colors.green[700]!;
-      break;
-    case 'completed':
-      mainColor = Colors.blue[700]!;
-      break;
-    case 'amendment':
-      mainColor = Colors.orange[700]!;
-      break;
-    case 'cancelled':
-      mainColor = Colors.red[700]!;
-      break;
-    default:
-      mainColor = Colors.grey[700]!;
-  }
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: mainColor.withOpacity(0.5)), 
-    ),
-    child: Text(
-      status.toUpperCase(),
-      style: TextStyle(
-        color: mainColor, 
-        fontWeight: FontWeight.bold,
-        fontSize: 10,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: mainColor.withOpacity(0.5)),
       ),
-    ),
-  );
-}
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: mainColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
@@ -3375,8 +3379,6 @@ String _formatLeaseTerm(double term, String period) {
       ),
     );
   }
-
-  
 
   Widget _buildGlassCard(String title, List<Widget> children) {
     return Container(
@@ -3412,7 +3414,7 @@ String _formatLeaseTerm(double term, String period) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9), 
+        color: const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.green[200]!),
       ),
@@ -3466,14 +3468,10 @@ String _formatLeaseTerm(double term, String period) {
     );
   }
 
-  
-
   String _formatCurrency(double amount, String currency) {
     final formatter = NumberFormat('#,##0.00');
     return ' ${formatter.format(amount)} ${getCurrencySymbol(currency)}';
   }
-
- 
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {

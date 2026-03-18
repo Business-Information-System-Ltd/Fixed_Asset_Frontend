@@ -1,9 +1,11 @@
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/screens/dashboard.dart';
+import 'package:fixed_asset_frontend/userInformation/forgotpwd_screen.dart';
 import 'package:fixed_asset_frontend/widgets/customTextField.dart';
 import 'package:fixed_asset_frontend/widgets/googleAuthService.dart';
 import 'package:fixed_asset_frontend/widgets/microsoftAuthService.dart';
 import 'package:fixed_asset_frontend/widgets/socialButton.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'signup.dart';
 import 'dart:convert';
@@ -27,27 +29,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final apiService = ApiService();
   bool obscure = true;
   bool isLoggingIn = false;
+  bool _rememberMe = false;
   bool _isMicrosoftLoading = false;
+ 
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (_rememberMe) {
+        emailController.text = prefs.getString('saved_email') ?? '';
+        passwordController.text = prefs.getString('saved_password') ?? '';
+      }
+    });
+  }
+
   Future<void> _handleLogin() async {
     setState(() => isLoggingIn = true);
 
     try {
-      final apiService = ApiService();
-
       final response = await apiService.loginUser(
         emailController.text,
         passwordController.text,
       );
 
-      setState(() => isLoggingIn = false);
-
       if (response != null) {
-        // final loginData = LoginResponse.fromJson(jsonDecode(response.body));
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => MainScreen(userData: response),
-          ),
-        );
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setBool('remember_me', true);
+          await prefs.setString('saved_email', emailController.text);
+          await prefs.setString('saved_password', passwordController.text);
+          await prefs.setBool('is_logged_in', true);
+        } else {
+          await prefs.setBool('remember_me', false);
+          await prefs.remove('saved_email');
+          await prefs.remove('saved_password');
+        }
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => MainScreen(userData: response),
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -95,14 +126,37 @@ class _LoginScreenState extends State<LoginScreen> {
                   suffixIcon: obscure ? Icons.visibility_off : Icons.visibility,
                   onSuffixTap: () => setState(() => obscure = !obscure),
                 ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text("Forgot Password?"),
-                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value!;
+                        });
+                      },
+                      activeColor: const Color(0xFF1967D2),
+                    ),
+                    const Text("Remember Me"),
+                    const SizedBox(width: 80),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ForgotPasswordPage(),
+                            ),
+                          );
+                        },
+                        child: const Text("Forgot Password?"),
+                      ),
+                    ),
+                  ],
                 ),
+
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
