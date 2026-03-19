@@ -73,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.remove('saved_password');
         }
         if (mounted) {
+          
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => MainScreen(userData: response),
@@ -90,6 +91,12 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => isLoggingIn = false);
       print("Login Error: $e");
     }
+    finally {
+  
+    if (mounted) {
+      setState(() => isLoggingIn = false);
+    }
+  }
   }
 
   @override
