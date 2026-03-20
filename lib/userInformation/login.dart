@@ -31,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoggingIn = false;
   bool _rememberMe = false;
   bool _isMicrosoftLoading = false;
- 
 
   @override
   void initState() {
@@ -73,7 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.remove('saved_password');
         }
         if (mounted) {
-          
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => MainScreen(userData: response),
@@ -90,13 +88,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => isLoggingIn = false);
       print("Login Error: $e");
+    } finally {
+      if (mounted) {
+        setState(() => isLoggingIn = false);
+      }
     }
-    finally {
-  
-    if (mounted) {
-      setState(() => isLoggingIn = false);
-    }
-  }
   }
 
   @override
@@ -132,6 +128,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscure: obscure,
                   suffixIcon: obscure ? Icons.visibility_off : Icons.visibility,
                   onSuffixTap: () => setState(() => obscure = !obscure),
+                  onSubmitted: (value) {
+                    if (!isLoggingIn) {
+                      _handleLogin();
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 Row(
