@@ -969,6 +969,43 @@ class ApiService {
     }
   }
 
+  //lease financial List
+  Future<List<Financial>> fetchLeaseFinancial() async {
+    final response = await http.get(
+      Uri.parse(baseUrl + leaseLiabilityFinanceEndPoint),
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+
+      List<Financial> leaseFinancials = data
+          .map((item) => Financial.fromJson(item))
+          .toList();
+
+      return leaseFinancials;
+    } else {
+      throw Exception('Failed to load Lease Financial data');
+    }
+  }
+
+  //post lease financial
+  Future<void> postLeaseFinancial(Financial newFinancial) async {
+    final jsonData = newFinancial.toJson();
+    print("Sending lease financial Json: $jsonData");
+    final response = await http.post(
+      Uri.parse(baseUrl + leaseLiabilityFinanceEndPoint),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(jsonData),
+    );
+    print("API Lease Financial Response Status: ${response.statusCode}");
+    print("API Lease Financial Response body: ${response.body}");
+    if (response.statusCode != 201) {
+      throw Exception('Failed to post Lease Financial data');
+    }
+  }
+
   //lease List
   Future<List<Lease>> fetchLease() async {
     final response = await http.get(
@@ -985,6 +1022,7 @@ class ApiService {
       throw Exception('Failed to load Lease data');
     }
   }
+
   //post lease
   Future<void> postLease(Lease newLease) async {
     final jsonData = newLease.toJson();
@@ -1002,21 +1040,34 @@ class ApiService {
       throw Exception('Failed to post Lease data');
     }
   }
-  //lease financial List
-  Future<List<Financial>> fetchLeaseFinancial() async {
+
+  // GET LEASE BY ID
+  Future<Lease> getLease(int id) async {
     final response = await http.get(
-      Uri.parse(baseUrl + leaseLiabilityFinanceEndPoint),
+      Uri.parse(baseUrl + leaseLiabilityContractEndPoint + '$id/'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
     );
-
     if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-
-      List<Financial> leaseFinancials =
-          data.map((item) => Financial.fromJson(item)).toList();
-
-      return leaseFinancials;
+      return Lease.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to load Lease Financial data');
+      throw Exception('Failed to fetch lease');
+    }
+  }
+
+  Future<Lease> updateLease(int id, Lease lease) async {
+    final response = await http.put(
+      Uri.parse(baseUrl + leaseLiabilityContractEndPoint + '$id/'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: json.encode(lease.toJson()),
+    );
+    if (response.statusCode == 200) {
+      return Lease.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to update lease');
     }
   }
 }

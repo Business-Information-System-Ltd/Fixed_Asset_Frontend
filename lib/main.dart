@@ -1,6 +1,8 @@
+import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/depreciation/asset_depreciaiton_policy.dart';
 import 'package:fixed_asset_frontend/depreciation/depreciation_convention.dart';
 import 'package:fixed_asset_frontend/leaseScreen/leaseEntry.dart';
+import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
 import 'package:fixed_asset_frontend/screens/fix_asset_form.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/general_ledger.dart';
@@ -20,7 +22,7 @@ void main() {
     MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: microsoft.navigatorKey,
-      home: LoginScreen(),
+      home: Leaselist(),
     ),
   );
 }

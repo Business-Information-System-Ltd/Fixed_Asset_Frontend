@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'dart:convert';
-import 'dart:typed_data';
+// import 'dart:convert';
+// import 'dart:typed_data';
 import 'package:fixed_asset_frontend/api/api_service.dart';
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/leaseScreen/leaseEntry.dart';
@@ -18,7 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 
 class Leaselist extends StatefulWidget {
   const Leaselist({super.key});

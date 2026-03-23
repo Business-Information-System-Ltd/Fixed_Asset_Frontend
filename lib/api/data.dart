@@ -1288,6 +1288,177 @@ class Lease {
   }
 }
 
+// class Financial {
+//   final int id;
+//   final double contractAmount;
+//   final double deposit;
+//   final double downpayment;
+//   final double otherCost;
+//   final double dismantlingCost;
+//   final double leaseTerm;
+//   final String leasePeriod;
+//   final double presentValue;
+//   final double discountRate;
+//   final double exchangeRate;
+//   final double paymentFrequency;
+//   final String paymentPeriod;
+//   final String computation;
+//   final String currency;
+//   final String homeCurrency;
+//   final String reason;
+//   final String changingDate;
+//   final double changingAmount;
+//   final String startDate;
+//   final String endDate;
+//   final String paymentTiming;
+//   final String discountRateType;
+//   final String escalationType;
+//   final int leaseId;
+//   final List<AmortizationSchedule> amortizationSchedule;
+
+//   Financial({
+//     required this.id,
+//     required this.contractAmount,
+//     required this.deposit,
+//     required this.downpayment,
+//     required this.otherCost,
+//     required this.dismantlingCost,
+//     required this.leaseTerm,
+//     required this.leasePeriod,
+//     required this.presentValue,
+//     required this.discountRate,
+//     required this.exchangeRate,
+//     required this.paymentFrequency,
+//     required this.paymentPeriod,
+//     required this.computation,
+//     required this.currency,
+//     required this.homeCurrency,
+//     required this.reason,
+//     required this.changingDate,
+//     required this.changingAmount,
+//     required this.startDate,
+//     required this.endDate,
+//     required this.paymentTiming,
+//     required this.discountRateType,
+//     required this.escalationType,
+//     required this.leaseId,
+//     required this.amortizationSchedule,
+//   });
+
+//   factory Financial.fromJson(Map<String, dynamic>? json) {
+//     if (json == null) return Financial.empty();
+
+//     return Financial(
+//       id: json['id'] ?? 0,
+//       contractAmount:
+//           double.tryParse(json['contract_amount']?.toString() ?? '') ?? 0.0,
+//       deposit: double.tryParse(json['deposit']?.toString() ?? '') ?? 0.0,
+//       downpayment:
+//           double.tryParse(json['down_payment']?.toString() ?? '') ?? 0.0,
+//       otherCost: double.tryParse(json['other_cost']?.toString() ?? '') ?? 0.0,
+//       dismantlingCost:
+//           double.tryParse(json['dismantling_cost']?.toString() ?? '') ?? 0.0,
+//       leaseTerm: double.tryParse(json['lease_term']?.toString() ?? '') ?? 0.0,
+//       leasePeriod: json['lease_period']?.toString() ?? '',
+//       presentValue:
+//           double.tryParse(json['present_value']?.toString() ?? '') ?? 0.0,
+//       discountRate: (json['discount_rate']?.toDouble()) ?? 0.0,
+//       exchangeRate:
+//           double.tryParse(json['exchange_rate']?.toString() ?? '') ?? 0.0,
+//       paymentFrequency:
+//           double.tryParse(json['payment_frequency']?.toString() ?? '') ?? 0.0,
+//       paymentPeriod: json['payment_period'] ?? '',
+//       computation: json['computation'] ?? '',
+//       currency: json['currency'] ?? 'MMK',
+//       homeCurrency: json['home_currency'] ?? 'MMK',
+//       reason: json['reason'] ?? '',
+//       changingAmount:
+//           double.tryParse(json['changing_amount']?.toString() ?? '') ?? 0.0,
+//       changingDate: json['changing_date'] ?? '',
+//       startDate: json['start_date'] ?? '',
+//       endDate: json['end_date'] ?? '',
+//       paymentTiming: json['payment_timing'] ?? '',
+//       discountRateType: json['discount_rate_type'] ?? '',
+//       escalationType: json['escalation_type'] ?? '',
+//       leaseId: json['lease'] ?? 0,
+//       amortizationSchedule: (json['amortization_schedule'] as List? ?? [])
+//           .map((e) => AmortizationSchedule.fromJson(e))
+//           .toList(),
+//     );
+//   }
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'contract_amount': contractAmount,
+//       'deposit': deposit,
+//       'down_payment': downpayment,
+//       'other_cost': otherCost,
+//       'dismantling_cost': dismantlingCost,
+//       'lease_term': leaseTerm,
+//       'lease_period': leasePeriod,
+//       'present_value': presentValue,
+//       'discount_rate': discountRate,
+//       'exchange_rate': exchangeRate,
+//       'payment_frequency': paymentFrequency,
+//       'payment_period': paymentPeriod,
+//       'computation': computation,
+//       'currency': currency,
+//       'home_currency': homeCurrency,
+//       'reason': reason,
+//       'changing_date': changingDate,
+//       'changing_amount': changingAmount,
+//       'start_date': startDate,
+//       'end_date': endDate,
+//       'payment_timing': paymentTiming,
+//       'discount_rate_type': discountRateType,
+//       'escalation_type': escalationType,
+//       'lease': leaseId,
+//       'amortization_schedule': amortizationSchedule
+//           .map((e) => e.toJson())
+//           .toList(),
+//     };
+//   }
+
+//   factory Financial.empty() {
+//     return Financial(
+//       id: 0,
+//       contractAmount: 0.0,
+//       deposit: 0.0,
+//       downpayment: 0.0,
+//       otherCost: 0.0,
+//       dismantlingCost: 0.0,
+//       leaseTerm: 0.0,
+//       leasePeriod: '',
+//       presentValue: 0.0,
+//       discountRate: 0.0,
+//       exchangeRate: 0.0,
+//       paymentFrequency: 0.0,
+//       paymentPeriod: '',
+//       computation: '',
+//       currency: 'MMK',
+//       homeCurrency: 'MMK',
+//       reason: '',
+//       changingAmount: 0.0,
+//       changingDate: '',
+//       startDate: '',
+//       endDate: '',
+//       paymentTiming: 'Advance',
+//       discountRateType: 'IBR',
+//       escalationType: 'Fixed',
+//       leaseId: 0,
+//       amortizationSchedule: [],
+//     );
+//   }
+
+//   static double _toDouble(dynamic value) {
+//     if (value == null) return 0.0;
+//     if (value is double) return value;
+//     if (value is int) return value.toDouble();
+//     if (value is String) return double.tryParse(value) ?? 0.0;
+//     return 0.0;
+//   }
+// }
+
 class Financial {
   final int id;
   final double contractAmount;
@@ -1310,6 +1481,10 @@ class Financial {
   final double changingAmount;
   final String startDate;
   final String endDate;
+  final String paymentTiming;
+  final String discountRateType;
+  final String escalationType;
+  final int leaseId;
   final List<AmortizationSchedule> amortizationSchedule;
 
   Financial({
@@ -1334,6 +1509,10 @@ class Financial {
     required this.changingAmount,
     required this.startDate,
     required this.endDate,
+    required this.paymentTiming,
+    required this.discountRateType,
+    required this.escalationType,
+    required this.leaseId,
     required this.amortizationSchedule,
   });
 
@@ -1369,11 +1548,16 @@ class Financial {
       changingDate: json['changing_date'] ?? '',
       startDate: json['start_date'] ?? '',
       endDate: json['end_date'] ?? '',
+      paymentTiming: json['payment_timing'] ?? '',
+      discountRateType: json['discount_rate_type'] ?? '',
+      escalationType: json['escalation_type'] ?? '',
+      leaseId: json['lease'] ?? 0,
       amortizationSchedule: (json['amortization_schedule'] as List? ?? [])
           .map((e) => AmortizationSchedule.fromJson(e))
           .toList(),
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -1397,6 +1581,10 @@ class Financial {
       'changing_amount': changingAmount,
       'start_date': startDate,
       'end_date': endDate,
+      'payment_timing': paymentTiming,
+      'discount_rate_type': discountRateType,
+      'escalation_type': escalationType,
+      'lease': leaseId,
       'amortization_schedule': amortizationSchedule
           .map((e) => e.toJson())
           .toList(),
@@ -1426,10 +1614,72 @@ class Financial {
       changingDate: '',
       startDate: '',
       endDate: '',
+      paymentTiming: 'Advance',
+      discountRateType: 'IBR',
+      escalationType: 'Fixed',
+      leaseId: 0,
       amortizationSchedule: [],
     );
   }
 
+
+  Financial copyWith({
+    int? id,
+    double? contractAmount,
+    double? deposit,
+    double? downpayment,
+    double? otherCost,
+    double? dismantlingCost,
+    double? leaseTerm,
+    String? leasePeriod,
+    double? presentValue,
+    double? discountRate,
+    double? exchangeRate,
+    double? paymentFrequency,
+    String? paymentPeriod,
+    String? computation,
+    String? currency,
+    String? homeCurrency,
+    String? reason,
+    String? changingDate,
+    double? changingAmount,
+    String? startDate,
+    String? endDate,
+    String? paymentTiming,
+    String? discountRateType,
+    String? escalationType,
+    int? leaseId,
+    List<AmortizationSchedule>? amortizationSchedule,
+  }) {
+    return Financial(
+      id: id ?? this.id,
+      contractAmount: contractAmount ?? this.contractAmount,
+      deposit: deposit ?? this.deposit,
+      downpayment: downpayment ?? this.downpayment,
+      otherCost: otherCost ?? this.otherCost,
+      dismantlingCost: dismantlingCost ?? this.dismantlingCost,
+      leaseTerm: leaseTerm ?? this.leaseTerm,
+      leasePeriod: leasePeriod ?? this.leasePeriod,
+      presentValue: presentValue ?? this.presentValue,
+      discountRate: discountRate ?? this.discountRate,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      paymentFrequency: paymentFrequency ?? this.paymentFrequency,
+      paymentPeriod: paymentPeriod ?? this.paymentPeriod,
+      computation: computation ?? this.computation,
+      currency: currency ?? this.currency,
+      homeCurrency: homeCurrency ?? this.homeCurrency,
+      reason: reason ?? this.reason,
+      changingDate: changingDate ?? this.changingDate,
+      changingAmount: changingAmount ?? this.changingAmount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      paymentTiming: paymentTiming ?? this.paymentTiming,
+      discountRateType: discountRateType ?? this.discountRateType,
+      escalationType: escalationType ?? this.escalationType,
+      leaseId: leaseId ?? this.leaseId,
+      amortizationSchedule: amortizationSchedule ?? this.amortizationSchedule,
+    );
+  }
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is double) return value;
