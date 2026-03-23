@@ -1,10 +1,13 @@
+import 'dart:convert'; 
 import 'package:fixed_asset_frontend/api/data.dart';
 import 'package:fixed_asset_frontend/leaseScreen/leaseList.dart';
 import 'package:fixed_asset_frontend/screens/fixed_asset_list.dart';
 import 'package:fixed_asset_frontend/screens/wip.dart';
 import 'package:fixed_asset_frontend/screens/wip_list.dart';
 import 'package:fixed_asset_frontend/system_default/settings.dart';
+import 'package:fixed_asset_frontend/userInformation/login.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class MainScreen extends StatefulWidget {
   final LoginResponse userData;
@@ -16,16 +19,43 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  // late List<Widget> _screens;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+    String token = '';  
+  String userName = '';
+  String userRole = '';
+  bool _isLoading = true; 
 
-  // List of screens/pages
-  final List<Widget> _screens = [
-    WelcomeScreen(),
+
+
+@override
+void initState() {
+  super.initState();
+  
+  
+  token = widget.userData.token;
+  
+  print('Debug: Received Token: "$token"'); 
+  if (token.isNotEmpty) {
+    loadUser();
+  } else {
+   
+    setState(() {
+      userName = widget.userData.userName;
+      userRole = widget.userData.role;
+      _isLoading = false; 
+    });
+    print('Warning: Token is empty from login response');
+  }
+}
+List<Widget> get _screens => [
+    WelcomeScreen(userName: userName), 
     const WIPListScreen(),
     const FixedAssetListScreen(),
     const Leaselist(),
     const SettingsPage(),
   ];
+ 
 
   // List of menu items with icons and colors
   final List<NavigationItem> _menuItems = [
@@ -69,6 +99,50 @@ class _MainScreenState extends State<MainScreen> {
     _scaffoldKey.currentState?.closeDrawer();
   }
 
+
+Future<Map<String, dynamic>> fetchCurrentUser() async {
+    if (token.isEmpty) throw Exception('Token is not set!');
+    final response = await http.get(
+      Uri.parse('https://fixedassetbackend-dchggqcdd7gefsb5.canadacentral-01.azurewebsites.net/api/current-user/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load user');
+    }
+  }
+
+Future<void> loadUser() async {
+    if (token.isEmpty) {
+      print("Token is empty! Cannot fetch user");
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final user = await fetchCurrentUser();
+      setState(() {
+        userName = user['name'];
+        userRole = user['role'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching user: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +184,7 @@ class _MainScreenState extends State<MainScreen> {
           IconButton(
             icon: const Icon(Icons.help_rounded, color: Colors.white),
             onPressed: () {
-              // Help/Support
+              
             },
           ),
         ],
@@ -119,6 +193,9 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _selectedIndex,
         menuItems: _menuItems,
         onItemSelected: _onMenuItemSelected,
+        userName: userName,
+        userRole: userRole,
+        isLoading: _isLoading,
       ),
       body: _screens[_selectedIndex],
     );
@@ -130,12 +207,19 @@ class SideNavigationDrawer extends StatelessWidget {
   final int selectedIndex;
   final List<NavigationItem> menuItems;
   final Function(int) onItemSelected;
+  final String userName;
+  final String userRole;
+  final bool isLoading;
+
 
   const SideNavigationDrawer({
     super.key,
     required this.selectedIndex,
     required this.menuItems,
     required this.onItemSelected,
+    required this.userName,
+    required this.userRole,
+    required this.isLoading,
   });
 
   @override
@@ -242,54 +326,57 @@ class SideNavigationDrawer extends StatelessWidget {
           const SizedBox(height: 20),
 
           // User Profile
-          Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF3949AB),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'John Smith',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      'Administrator',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                onPressed: () {
-                  // Edit profile
-                },
-              ),
-            ],
+       Row(
+  children: [
+   
+    Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF3949AB),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Center(
+        child: Text(
+          isLoading 
+            ? '' 
+            : (userName.isNotEmpty ? userName[0].toUpperCase() : 'G'), // ပထမစာလုံးယူမယ်
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+    ),
+    const SizedBox(width: 12),
+    Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isLoading
+                ? 'Loading...'
+                : (userName.isEmpty ? 'Guest' : userName),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 3,),
+          Text(
+            isLoading
+                ? ''
+                : (userRole.isEmpty ? '' : userRole),
+            style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 14),
+          ),
+        ],
+      ),
+    ),
+  ],
+)
         ],
       ),
     );
@@ -448,6 +535,8 @@ class SideNavigationDrawer extends StatelessWidget {
     );
   }
 
+  
+
   Widget _buildFooter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -458,11 +547,43 @@ class SideNavigationDrawer extends StatelessWidget {
         children: [
           // Logout Button
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Handle logout
-              },
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    onPressed: () {
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to logout?'),
+            actions: [
+             
+              TextButton(
+                onPressed: () => Navigator.pop(context), 
+                child: const Text('No', style: TextStyle(color: Colors.black)),
+              ),
+             
+              TextButton(
+                onPressed: () {
+                  
+                  Navigator.pop(context); 
+                  
+             
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false, 
+                  );
+                },
+                child: const Text('Yes', style: TextStyle(color: Color.fromARGB(255, 192, 26, 14))),
+              ),
+            ],
+          );
+        },
+      );
+    },
+    
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white.withOpacity(0.1),
                 foregroundColor: Colors.white,
@@ -517,13 +638,12 @@ class NavigationItem {
   });
 }
 
-// =============================================
-// SCREEN IMPLEMENTATIONS
-// =============================================
+
 
 // 1. WELCOME/SPLASH SCREEN
 class WelcomeScreen extends StatelessWidget {
-  WelcomeScreen({super.key});
+  final String userName;
+  WelcomeScreen({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -547,34 +667,61 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'John Smith',
+                   userName.isEmpty ? 'Guest' : userName,
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: const Color(0xFF1A237E),
                     ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.calendar_today_rounded,
-                  color: Color(0xFF1A237E),
-                  size: 28,
+              GestureDetector(
+      onTap: () async {
+        final DateTime? picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(), 
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2101),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF1A237E), 
+                  onPrimary: Colors.white,    
+                  onSurface: Colors.black,    
                 ),
               ),
-            ],
-          ),
+              child: child!,
+            );
+          },
+        );
+
+        if (picked != null) {
+          
+          print("Selected Date: ${picked.toLocal()}");
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.calendar_today_rounded,
+          color: Color(0xFF1A237E),
+          size: 28,
+        ),
+      ),
+    ),
+  ],
+),
 
           const SizedBox(height: 8),
           Text(

@@ -77,6 +77,44 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => loadingRole = false);
   }
 
+
+Future<void> _performSignup() async {
+    if (selectedDepartmentId == null || selectedRoleId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select Department and Role")),
+      );
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    try {
+      User newUser = User(
+        name: nameController.text,
+        email: emailController.text,
+        phoneNumber: phoneController.text,
+        departmentId: selectedDepartmentId!,
+        roleId: selectedRoleId!,
+        authProvider: 'local',
+      );
+
+      bool isSuccess = await apiService.registerUser(newUser, passwordController.text);
+
+      if (isSuccess) {
+        _showSuccessDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Signup failed! Please try again.")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("An error occurred: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -146,7 +184,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 24),
-                  CustomTextfield(hint: "Name", controller: nameController),
+                  CustomTextfield(hint: "Name", controller: nameController, ),
                   const SizedBox(height: 15),
                   CustomTextfield(hint: "Email", controller: emailController),
                   const SizedBox(height: 15),
@@ -192,15 +230,24 @@ class _SignupScreenState extends State<SignupScreen> {
                         ? Icons.visibility_off
                         : Icons.visibility,
                     onSuffixTap: () => setState(() => obscure = !obscure),
+                  
+  onSubmitted: (value) async {
+   
+    if (selectedDepartmentId == null || selectedRoleId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select Department and Role")),
+      );
+      return;
+    }
+    
+    
+    if (!isSubmitting) {
+   
+      _performSignup(); 
+    }
+  },
                   ),
-                  // const SizedBox(height: 15),
-                  // CustomTextfield(
-                  //   hint: "Confirm Password",
-                  //   controller: confirmpassword,
-                  //   obscure: obscure,
-                  //   suffixIcon: obscure ? Icons.visibility_off : Icons.visibility,
-                  // onSuffixTap: () => setState(() => obscure = !obscure),
-                  // ),
+                  
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,

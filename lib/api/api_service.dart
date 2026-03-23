@@ -29,6 +29,7 @@ class ApiService {
   final String bookLevelEndPoint = "/book-level-policies/";
   final String leaseLiabilityContractEndPoint = "/leases-contracts/";
   final String leaseLiabilityFinanceEndPoint = "/leases-financials/";
+  final String currentUser = "/current-user/";
 
   // WIP methods
   Future<List<Wip>> fetchWipData() async {
@@ -626,7 +627,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final decodedData = jsonDecode(response.body);
+        print('Login response: $decodedData');
         final loginResponse = LoginResponse.fromJson(decodedData);
+        if (loginResponse.token.isEmpty) {
+          print('Warning: Token is empty!');
+        }
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);

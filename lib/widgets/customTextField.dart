@@ -6,6 +6,8 @@ class CustomTextfield extends StatelessWidget {
   final bool obscure;
   final IconData? suffixIcon;
   final VoidCallback? onSuffixTap;
+  final String? Function(String?)? validator;
+  final Function(String)? onSubmitted;
 
   const CustomTextfield({
     super.key,
@@ -14,23 +16,29 @@ class CustomTextfield extends StatelessWidget {
     this.obscure = false,
     this.suffixIcon,
     this.onSuffixTap,
+    this.validator,
+    this.onSubmitted,
   });
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+
       decoration: InputDecoration(
         hintText: hint,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 12,
         ),
+
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         suffixIcon: suffixIcon != null
             ? IconButton(icon: Icon(suffixIcon), onPressed: onSuffixTap)
             : null,
       ),
+      onSubmitted: onSubmitted,
+      textInputAction: TextInputAction.done,
     );
   }
 }

@@ -108,6 +108,7 @@ class _LeaselistState extends State<Leaselist> {
 
       return PresentValueEntry(
         period: item.period,
+        date: item.date,
         payment: item.payment,
         discountFactor: double.parse(discountFactor.toStringAsFixed(6)),
         presentValue: double.parse(presentValue.toStringAsFixed(2)),
@@ -117,6 +118,11 @@ class _LeaselistState extends State<Leaselist> {
 
   void _showPresentValueDialog(Lease lease) {
     final pvEntries = generatePresentValue(lease);
+    final amortizationSchedules = lease.financial.amortizationSchedule;
+     final mergedList = mergePresentValueWithAmortization(
+    pvList: pvEntries,
+    amortList: amortizationSchedules,
+  );
     final totalPV = pvEntries.fold(
       0.0,
       (sum, entry) => sum + entry.presentValue,
@@ -128,7 +134,7 @@ class _LeaselistState extends State<Leaselist> {
       builder: (BuildContext context) {
         return Dialog(
           insetPadding: const EdgeInsets.all(10),
-          child: _buildPresentValueDialog(lease, pvEntries, totalPV),
+          child: _buildPresentValueDialog(lease, mergedList, totalPV),
         );
       },
     );
@@ -376,7 +382,7 @@ class _LeaselistState extends State<Leaselist> {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        entry.period.toString(),
+                                        entry.date.toString(),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -440,7 +446,7 @@ class _LeaselistState extends State<Leaselist> {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        '${_getCurrencySymbol(lease.financial.currency)}${NumberFormat('#,##0.00').format(double.tryParse(lease.financial.presentValue.toString()) ?? 0.0)}',
+                                        '${_getCurrencySymbol(lease.financial.currency)} ${NumberFormat('#,##0.00').format(double.tryParse(lease.financial.presentValue.toString()) ?? 0.0)}',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 13,
@@ -618,11 +624,11 @@ class _LeaselistState extends State<Leaselist> {
     );
 
     final columnWidths = {
-      'period': 70.0,
-      'opening_liability': 180.0,
+      'period': 90.0,
+      'opening_liability': 170.0,
       'interest': 130.0,
       'lease_payment': 150.0,
-      'closing_liability': 180.0,
+      'closing_liability': 170.0,
       'opening_rou': 180.0,
       'depreciation': 130.0,
       'closing_rou': 150.0,
@@ -1021,7 +1027,7 @@ class _LeaselistState extends State<Leaselist> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          entry.period.toString(),
+                                          entry.date.toString(),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 13,
@@ -3078,6 +3084,7 @@ class _LeaselistState extends State<Leaselist> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                
                 Expanded(
                   child: Column(
                     children: [

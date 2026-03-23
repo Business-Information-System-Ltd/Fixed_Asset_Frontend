@@ -3295,7 +3295,7 @@ class _LeaseEntryFormState extends State<LeaseEntryForm>
           paymentTiming: 'Advance',
           discountRateType: 'IBR',
           escalationType: 'Fixed',
-          leaseId: newLeaseId,
+          leaseId: 0,
           amortizationSchedule: [],
         );
 
